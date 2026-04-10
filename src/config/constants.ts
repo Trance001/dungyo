@@ -69,4 +69,5 @@ export const STORAGE_KEYS = {
   WEEKLY_CLEARS: 'dnf_gyo_weekly_clears',
   API_SETTINGS: 'dnf_gyo_api_settings',
   ADVENTURE_CACHE: 'dnf_gyo_adventure_cache',
+  PRESETS: 'dnf_gyo_presets',
 } as const;

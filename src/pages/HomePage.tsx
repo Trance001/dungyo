@@ -11,13 +11,22 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useCharacterStore } from '@/stores/character-store';
 import { usePartyComposition } from '@/hooks/usePartyComposition';
+import { usePresets } from '@/hooks/usePresets';
 import { PartyResult } from '@/components/features/PartyResult';
 import { CharacterManager } from '@/components/features/CharacterManager';
 import { AdventureSetupDialog } from '@/components/features/AdventureSetupDialog';
 
 import type { BufferExchangeInput } from '@/domain/party';
+import type { Preset } from '@/domain/preset';
 
 export function HomePage() {
   const [totalMembers, setTotalMembers] = useState('4');
@@ -29,10 +38,12 @@ export function HomePage() {
   const [minSecondaryBuff, setMinSecondaryBuff] = useState('');
   const [useTotalDamage, setUseTotalDamage] = useState(false);
   const [minTotalDamage, setMinTotalDamage] = useState('');
+  const [presetName, setPresetName] = useState('');
 
   const characters = useCharacterStore((state) => state.characters);
   const adventureName = useCharacterStore((state) => state.adventureName);
   const { partyResults, buildParty } = usePartyComposition();
+  const { presets, savePreset, deletePreset } = usePresets();
 
   const needSecondaryBuffer = Number(secondaryBufferSlots) > 0;
   const totalSlotSum = (Number(dealerSlots) || 0) + (Number(bufferSlots) || 0) + (Number(secondaryBufferSlots) || 0);
@@ -53,6 +64,35 @@ export function HomePage() {
       minTotalDamage: Number(minTotalDamage) || 0,
     };
     buildParty(input);
+  }
+
+  function handleSavePreset() {
+    if (!presetName.trim()) return;
+    savePreset({
+      name: presetName.trim(),
+      totalMembers: Number(totalMembers) || 4,
+      dealerSlots: Number(dealerSlots) || 0,
+      bufferSlots: Number(bufferSlots) || 0,
+      secondaryBufferSlots: Number(secondaryBufferSlots) || 0,
+      minDealerDamage: Number(minDamage) || 0,
+      minPrimaryBuffPower: Number(minPrimaryBuff) || 0,
+      minSecondaryBuffPower: Number(minSecondaryBuff) || 0,
+      useTotalDamage,
+      minTotalDamage: Number(minTotalDamage) || 0,
+    });
+    setPresetName('');
+  }
+
+  function handleLoadPreset(preset: Preset) {
+    setTotalMembers(String(preset.totalMembers));
+    setDealerSlots(String(preset.dealerSlots));
+    setBufferSlots(String(preset.bufferSlots));
+    setSecondaryBufferSlots(String(preset.secondaryBufferSlots));
+    setMinDamage(preset.minDealerDamage ? String(preset.minDealerDamage) : '');
+    setMinPrimaryBuff(preset.minPrimaryBuffPower ? String(preset.minPrimaryBuffPower) : '');
+    setMinSecondaryBuff(preset.minSecondaryBuffPower ? String(preset.minSecondaryBuffPower) : '');
+    setUseTotalDamage(preset.useTotalDamage);
+    setMinTotalDamage(preset.minTotalDamage ? String(preset.minTotalDamage) : '');
   }
 
   return (
@@ -90,6 +130,53 @@ export function HomePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* 프리셋 */}
+                  <div className="space-y-2">
+                    <Label>프리셋</Label>
+                    <div className="flex gap-2">
+                      <Select onValueChange={(id) => {
+                        const preset = presets.find((p) => p.id === id);
+                        if (preset) handleLoadPreset(preset);
+                      }}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="프리셋 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {presets.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="프리셋 이름"
+                        value={presetName}
+                        onChange={(e) => setPresetName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
+                      />
+                      <Button variant="outline" size="sm" onClick={handleSavePreset} disabled={!presetName.trim()} className="shrink-0">
+                        저장
+                      </Button>
+                    </div>
+                    {presets.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {presets.map((p) => (
+                          <span key={p.id} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs">
+                            <button type="button" className="hover:text-primary" onClick={() => handleLoadPreset(p)}>
+                              {p.name}
+                            </button>
+                            <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => deletePreset(p.id)}>
+                              x
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="totalMembers">파티 참가 인원</Label>
                     <Input

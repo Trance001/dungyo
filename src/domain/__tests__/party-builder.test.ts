@@ -120,7 +120,7 @@ describe('buildPartyComposition', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -141,7 +141,7 @@ describe('buildPartyComposition', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { dealerSlots: 2, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 1, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 2, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 1, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -158,7 +158,7 @@ describe('buildPartyComposition', () => {
     const damageMap = new Map([['cain:d1', 500]]);
 
     const result = buildPartyComposition(
-      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
       chars, damageMap, new Map(), [],
     );
 
@@ -177,7 +177,7 @@ describe('buildPartyComposition', () => {
     const buffMap = new Map([['cain:b1', 50000], ['cain:b2', 40000], ['cain:b3', 30000]]);
 
     const result = buildPartyComposition(
-      { dealerSlots: 1, bufferSlots: 2, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 1, bufferSlots: 2, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -197,7 +197,7 @@ describe('buildPartyComposition', () => {
     const buffMap = new Map([['cain:b1', 50000], ['cain:b2', 40000], ['cain:b3', 30000]]);
 
     const result = buildPartyComposition(
-      { dealerSlots: 1, bufferSlots: 1, secondaryBufferSlots: 1, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 1, bufferSlots: 1, secondaryBufferSlots: 1, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -229,7 +229,7 @@ describe('buildMultipleParties', () => {
     const buffMap = new Map([['cain:b1', 50000], ['cain:b2', 40000]]);
 
     const results = buildMultipleParties(
-      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -268,7 +268,7 @@ describe('buildMultipleParties', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const results = buildMultipleParties(
-      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -279,7 +279,7 @@ describe('buildMultipleParties', () => {
 
   it('딜러도 버퍼도 없으면 빈 배열을 반환한다', () => {
     const results = buildMultipleParties(
-      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
       [], new Map(), new Map(), [],
     );
 
@@ -301,7 +301,7 @@ describe('딜합벞교', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -324,7 +324,7 @@ describe('딜합벞교', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 500 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 500, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -344,7 +344,7 @@ describe('딜합벞교', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -367,7 +367,7 @@ describe('딜합벞교', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400, truncateOnesDigit: false },
       chars, damageMap, buffMap, [],
     );
 
@@ -375,5 +375,32 @@ describe('딜합벞교', () => {
     expect(result.dealers).toHaveLength(3);
     const selectedIds = result.dealers.map((d) => d.characterId);
     expect(selectedIds).not.toContain('d1'); // d1(300)은 아껴야 함
+  });
+
+  it('1의 자리 버림 옵션 적용 시 10 단위로 내림하여 딜합을 계산한다', () => {
+    const chars = [
+      makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
+      makeCharacter({ characterId: 'd2', jobGrowName: '런처(남)' }),
+      makeCharacter({ characterId: 'd3', jobGrowName: '배틀메이지' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+    ];
+    // d1=137, d2=128, d3=139 → 버림 시 130+120+130=380 < 400 → 불완전
+    // 버림 없이 137+128+139=404 >= 400 → 완전
+    const damageMap = new Map([
+      ['cain:d1', 137], ['cain:d2', 128], ['cain:d3', 139],
+    ]);
+    const buffMap = new Map([['cain:b1', 50000]]);
+
+    const withTruncate = buildPartyComposition(
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400, truncateOnesDigit: true },
+      chars, damageMap, buffMap, [],
+    );
+    expect(withTruncate.isComplete).toBe(false);
+
+    const withoutTruncate = buildPartyComposition(
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400, truncateOnesDigit: false },
+      chars, damageMap, buffMap, [],
+    );
+    expect(withoutTruncate.isComplete).toBe(true);
   });
 });

@@ -14,6 +14,8 @@ export interface SlotConfig {
 /** 파티 구성 결과 */
 export interface PartyComposition {
   slotConfig: SlotConfig;
+  /** 딜합 계산 시 1의 자리 버림 적용 여부 */
+  truncateOnesDigit: boolean;
   dealers: DealerCharacter[];
   primaryBuffers: BufferCharacter[];
   secondaryBuffers: BufferCharacter[];
@@ -40,4 +42,6 @@ export interface BufferExchangeInput extends SlotConfig {
   useTotalDamage: boolean;
   /** 딜합 기준 (억 단위) */
   minTotalDamage: number;
+  /** 딜합 계산 시 1의 자리 버림 */
+  truncateOnesDigit: boolean;
 }

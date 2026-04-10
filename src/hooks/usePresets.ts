@@ -8,6 +8,7 @@ import type { Preset } from '@/domain/preset';
 interface UsePresetsReturn {
   presets: Preset[];
   savePreset: (preset: Omit<Preset, 'id'>) => void;
+  updatePreset: (id: string, preset: Omit<Preset, 'id'>) => void;
   deletePreset: (id: string) => void;
 }
 
@@ -29,11 +30,17 @@ export function usePresets(): UsePresetsReturn {
     setPresets(updated);
   }, []);
 
+  const updatePreset = useCallback((id: string, preset: Omit<Preset, 'id'>) => {
+    const updated = loadPresets().map((p) => p.id === id ? { ...preset, id } : p);
+    persistPresets(updated);
+    setPresets(updated);
+  }, []);
+
   const deletePreset = useCallback((id: string) => {
     const updated = loadPresets().filter((p) => p.id !== id);
     persistPresets(updated);
     setPresets(updated);
   }, []);
 
-  return { presets, savePreset, deletePreset };
+  return { presets, savePreset, updatePreset, deletePreset };
 }

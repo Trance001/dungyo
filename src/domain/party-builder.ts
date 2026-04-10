@@ -79,16 +79,26 @@ function selectDealersByTotalDamage(
   candidates: DealerCharacter[],
   count: number,
   minTotalDamage: number,
+  truncateOnesDigit: boolean,
 ): DealerCharacter[] {
   if (candidates.length <= count) {
     return candidates;
   }
 
+  // 1의 자리 버림 적용 시 damage를 10 단위로 내림하여 계산
+  const effectiveCandidates = truncateOnesDigit
+    ? candidates.map((c) => ({ ...c, damage: Math.floor(c.damage / 10) * 10 }))
+    : candidates;
+
   // 후보는 이미 오름차순 정렬됨
   // 가장 딜이 낮은 count명 조합부터 시도
   // 단순 조합 탐색 (후보가 많지 않으므로 충분)
-  const result = findMinCombination(candidates, count, minTotalDamage, 0);
-  return result ?? candidates.slice(0, count);
+  const result = findMinCombination(effectiveCandidates, count, minTotalDamage, 0);
+  if (!result) return candidates.slice(0, count);
+
+  // 원본 damage를 가진 캐릭터로 복원
+  const selectedIds = new Set(result.map((d) => characterKey(d)));
+  return candidates.filter((c) => selectedIds.has(characterKey(c)));
 }
 
 /** 재귀적으로 합계 조건을 만족하는 가장 딜이 낮은 조합 탐색 */
@@ -136,7 +146,7 @@ export function buildPartyComposition(
     clearedRecords,
   );
   const selectedDealers = input.useTotalDamage
-    ? selectDealersByTotalDamage(dealerCandidates, input.dealerSlots, input.minTotalDamage)
+    ? selectDealersByTotalDamage(dealerCandidates, input.dealerSlots, input.minTotalDamage, input.truncateOnesDigit)
     : dealerCandidates.slice(0, input.dealerSlots);
 
   // 2. 버퍼 선별 (버프력 높은 순)
@@ -174,7 +184,10 @@ export function buildPartyComposition(
         : `딜 ${input.minDealerDamage.toLocaleString()}억 이상`,
     });
   } else if (input.useTotalDamage) {
-    const totalDamage = selectedDealers.reduce((sum, d) => sum + d.damage, 0);
+    const totalDamage = selectedDealers.reduce((sum, d) => {
+      const dmg = input.truncateOnesDigit ? Math.floor(d.damage / 10) * 10 : d.damage;
+      return sum + dmg;
+    }, 0);
     if (totalDamage < input.minTotalDamage) {
       missingSlots.push({
         role: 'dealer',
@@ -207,6 +220,7 @@ export function buildPartyComposition(
 
   return {
     slotConfig,
+    truncateOnesDigit: input.useTotalDamage && input.truncateOnesDigit,
     dealers: selectedDealers,
     primaryBuffers,
     secondaryBuffers,

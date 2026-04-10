@@ -69,7 +69,7 @@ export function PartyResult({ composition, partyIndex }: PartyResultProps) {
                   <CharacterSlotCard
                     key={`${dealer.serverId}:${dealer.characterId}`}
                     character={dealer}
-                    stat={`딜: ${dealer.damage.toLocaleString()}억`}
+                    stat={formatDealerStat(dealer.damage, composition.truncateOnesDigit)}
                     roleColor="text-red-500"
                     cleared={cleared}
                     onToggleCleared={() => cleared
@@ -236,6 +236,13 @@ function CharacterSlotCard({
       </Button>
     </div>
   );
+}
+
+function formatDealerStat(damage: number, truncate: boolean): string {
+  if (!truncate) return `딜: ${damage.toLocaleString()}억`;
+  const truncated = Math.floor(damage / 10) * 10;
+  const remainder = damage - truncated;
+  return `딜: ${truncated.toLocaleString()}억 (+${remainder})`;
 }
 
 function slotRoleLabel(role: MissingSlot['role']): string {

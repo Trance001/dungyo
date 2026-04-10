@@ -11,4 +11,5 @@ export interface Preset {
   minSecondaryBuffPower: number;
   useTotalDamage: boolean;
   minTotalDamage: number;
+  truncateOnesDigit: boolean;
 }

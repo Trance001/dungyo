@@ -31,12 +31,14 @@ export function HomePage() {
   const [minSecondaryBuff, setMinSecondaryBuff] = useState('');
   const [useTotalDamage, setUseTotalDamage] = useState(false);
   const [minTotalDamage, setMinTotalDamage] = useState('');
+  const [truncateOnesDigit, setTruncateOnesDigit] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
   const characters = useCharacterStore((state) => state.characters);
   const adventureName = useCharacterStore((state) => state.adventureName);
   const { partyResults, buildParty } = usePartyComposition();
-  const { presets, savePreset, deletePreset } = usePresets();
+  const { presets, savePreset, updatePreset, deletePreset } = usePresets();
 
   const needSecondaryBuffer = Number(secondaryBufferSlots) > 0;
   const totalSlotSum = (Number(dealerSlots) || 0) + (Number(bufferSlots) || 0) + (Number(secondaryBufferSlots) || 0);
@@ -55,14 +57,14 @@ export function HomePage() {
       minSecondaryBuffPower: Number(minSecondaryBuff) || 0,
       useTotalDamage,
       minTotalDamage: Number(minTotalDamage) || 0,
+      truncateOnesDigit,
     };
     buildParty(input);
   }
 
-  function handleSavePreset() {
-    if (!presetName.trim()) return;
-    savePreset({
-      name: presetName.trim(),
+  function currentPresetData(): Omit<Preset, 'id'> {
+    return {
+      name: presetName.trim() || selectedPreset?.name || '',
       totalMembers: Number(totalMembers) || 4,
       dealerSlots: Number(dealerSlots) || 0,
       bufferSlots: Number(bufferSlots) || 0,
@@ -72,11 +74,30 @@ export function HomePage() {
       minSecondaryBuffPower: Number(minSecondaryBuff) || 0,
       useTotalDamage,
       minTotalDamage: Number(minTotalDamage) || 0,
-    });
-    setPresetName('');
+      truncateOnesDigit,
+    };
   }
 
+  function handleSavePreset() {
+    if (!presetName.trim()) return;
+    savePreset({ ...currentPresetData(), name: presetName.trim() });
+    setPresetName('');
+    setSelectedPresetId(null);
+  }
+
+  function handleOverwritePreset() {
+    if (!selectedPresetId || !selectedPreset) return;
+    updatePreset(selectedPresetId, { ...currentPresetData(), name: selectedPreset.name });
+  }
+
+  function handleSaveAsPreset() {
+    setSelectedPresetId(null);
+  }
+
+  const selectedPreset = presets.find((p) => p.id === selectedPresetId) ?? null;
+
   function handleLoadPreset(preset: Preset) {
+    setSelectedPresetId(preset.id);
     setTotalMembers(String(preset.totalMembers));
     setDealerSlots(String(preset.dealerSlots));
     setBufferSlots(String(preset.bufferSlots));
@@ -86,6 +107,7 @@ export function HomePage() {
     setMinSecondaryBuff(preset.minSecondaryBuffPower ? String(preset.minSecondaryBuffPower) : '');
     setUseTotalDamage(preset.useTotalDamage);
     setMinTotalDamage(preset.minTotalDamage ? String(preset.minTotalDamage) : '');
+    setTruncateOnesDigit(preset.truncateOnesDigit ?? false);
   }
 
   return (
@@ -200,18 +222,32 @@ export function HomePage() {
                   </div>
 
                   {useTotalDamage && (
-                    <div className="space-y-2">
-                      <Label htmlFor="minTotalDamage">
-                        딜합 기준 (억)
-                      </Label>
-                      <Input
-                        id="minTotalDamage"
-                        type="number"
-                        placeholder="예: 400"
-                        value={minTotalDamage}
-                        onChange={(e) => setMinTotalDamage(e.target.value)}
-                      />
-                    </div>
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="minTotalDamage">
+                          딜합 기준 (억)
+                        </Label>
+                        <Input
+                          id="minTotalDamage"
+                          type="number"
+                          placeholder="예: 400"
+                          value={minTotalDamage}
+                          onChange={(e) => setMinTotalDamage(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="truncateOnesDigit"
+                          type="checkbox"
+                          checked={truncateOnesDigit}
+                          onChange={(e) => setTruncateOnesDigit(e.target.checked)}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                        <Label htmlFor="truncateOnesDigit" className="cursor-pointer">
+                          1의 자리 버림
+                        </Label>
+                      </div>
+                    </>
                   )}
 
                   <div className="space-y-2">
@@ -262,17 +298,31 @@ export function HomePage() {
                     </p>
                   )}
                   {/* 프리셋 저장 */}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="프리셋 이름을 입력하여 저장"
-                      value={presetName}
-                      onChange={(e) => setPresetName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
-                    />
-                    <Button variant="outline" size="sm" onClick={handleSavePreset} disabled={!presetName.trim()} className="shrink-0">
-                      저장
-                    </Button>
-                  </div>
+                  {selectedPreset ? (
+                    <div className="flex gap-2">
+                      <p className="flex-1 text-sm text-muted-foreground self-center truncate">
+                        프리셋: {selectedPreset.name}
+                      </p>
+                      <Button variant="outline" size="sm" onClick={handleOverwritePreset} className="shrink-0">
+                        덮어쓰기
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleSaveAsPreset} className="shrink-0">
+                        다른이름으로 저장
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="프리셋 이름을 입력하여 저장"
+                        value={presetName}
+                        onChange={(e) => setPresetName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
+                      />
+                      <Button variant="outline" size="sm" onClick={handleSavePreset} disabled={!presetName.trim()} className="shrink-0">
+                        저장
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

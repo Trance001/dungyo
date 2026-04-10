@@ -101,25 +101,17 @@ export function PartyResult({ composition, partyIndex }: PartyResultProps) {
       )}
 
       {/* 업둥 */}
-      {composition.carries.length > 0 && (
+      {composition.carryCount > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              업둥 ({composition.carries.length}/{meta.carrySlots})
+              업둥 캐릭 {composition.carryCount}명
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {composition.carries.map((carry) => (
-                <CharacterSlotCard
-                  key={`${carry.serverId}:${carry.characterId}`}
-                  character={carry}
-                  stat="쩔 받을 캐릭터"
-                  roleColor="text-green-500"
-                  onMarkCleared={() => markCleared(carry)}
-                />
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground">
+              모험단 내 아무 캐릭터로 머릿수를 채웁니다
+            </p>
           </CardContent>
         </Card>
       )}
@@ -204,9 +196,5 @@ function slotRoleLabel(role: MissingSlot['role']): string {
       return '주 버퍼';
     case 'secondaryBuffer':
       return '부 버퍼';
-    case 'carry':
-      return '업둥';
-    default:
-      return role;
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterDealers, filterBuffers, filterCarries, characterKey, buildPartyComposition, buildMultipleParties } from '../party-builder';
+import { filterDealers, filterBuffers, characterKey, buildPartyComposition, buildMultipleParties } from '../party-builder';
 import { getCurrentWeekKey } from '../weekly-clear';
 import { RAID_TYPES } from '@/config/constants';
 
@@ -107,21 +107,6 @@ describe('filterBuffers', () => {
   });
 });
 
-describe('filterCarries', () => {
-  it('제외 ID를 제외한 나머지 캐릭터를 반환한다', () => {
-    const chars = [
-      makeCharacter({ characterId: 'c1' }),
-      makeCharacter({ characterId: 'c2' }),
-      makeCharacter({ characterId: 'c3' }),
-    ];
-    const excludeIds = new Set(['cain:c1']);
-
-    const result = filterCarries(chars, excludeIds, []);
-    expect(result).toHaveLength(2);
-    expect(result.map((c) => c.characterId)).toEqual(['c2', 'c3']);
-  });
-});
-
 describe('buildPartyComposition', () => {
   it('4인 일반 버퍼교환: 딜러 3 + 버퍼 1', () => {
     const chars = [
@@ -142,7 +127,7 @@ describe('buildPartyComposition', () => {
 
     expect(result.dealers).toHaveLength(3);
     expect(result.primaryBuffer).not.toBeNull();
-    expect(result.carries).toHaveLength(0);
+    expect(result.carryCount).toBe(0);
     expect(result.isComplete).toBe(true);
   });
 
@@ -163,7 +148,7 @@ describe('buildPartyComposition', () => {
 
     expect(result.dealers).toHaveLength(2);
     expect(result.primaryBuffer).not.toBeNull();
-    expect(result.carries).toHaveLength(1);
+    expect(result.carryCount).toBe(1);
     expect(result.isComplete).toBe(true);
   });
 

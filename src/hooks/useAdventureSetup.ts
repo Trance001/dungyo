@@ -54,7 +54,7 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
     // 딜/버프 수치 자동 입력
     for (const c of result.characters) {
       if (isBufferJob(c.jobGrowName) && c.buffPower !== null) {
-        setBuffPower(c.serverId, c.characterName, c.buffPower);
+        setBuffPower(c.serverId, c.characterName, Math.round(c.buffPower / 10000));
       } else if (c.damage !== null) {
         setDamage(c.serverId, c.characterName, c.damage);
       }

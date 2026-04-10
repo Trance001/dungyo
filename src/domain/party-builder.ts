@@ -2,7 +2,6 @@ import { RAID_TYPE_META } from '@/config/constants';
 import { isBufferJob } from './character';
 import type {
   BufferCharacter,
-  CarryCharacter,
   Character,
   DealerCharacter,
 } from './character';
@@ -70,26 +69,6 @@ export function filterBuffers(
 }
 
 /**
- * 딜러/버퍼로 선발되지 않은 나머지 캐릭터를 업둥(carry) 후보로
- */
-export function filterCarries(
-  characters: Character[],
-  excludeIds: Set<string>,
-  clearedRecords: WeeklyClearRecord[],
-): CarryCharacter[] {
-  return characters
-    .filter(
-      (c) =>
-        !excludeIds.has(characterKey(c)) &&
-        !isAlreadyCleared(clearedRecords, c.characterId, c.serverId),
-    )
-    .map((c) => ({
-      ...c,
-      role: 'carry' as const,
-    }));
-}
-
-/**
  * 버퍼교환 최적 파티 구성 빌더
  */
 export function buildPartyComposition(
@@ -134,11 +113,7 @@ export function buildPartyComposition(
     if (secondaryBuffer) usedIds.add(characterKey(secondaryBuffer));
   }
 
-  // 4. 업둥 캐릭터 선별
-  const carryCandidates = filterCarries(characters, usedIds, clearedRecords);
-  const selectedCarries = carryCandidates.slice(0, meta.carrySlots);
-
-  // 5. 부족한 슬롯 계산
+  // 4. 부족한 슬롯 계산 (업둥은 머릿수만 채우므로 제외)
   const missingSlots: MissingSlot[] = [];
   if (selectedDealers.length < meta.dealerSlots) {
     missingSlots.push({
@@ -161,20 +136,13 @@ export function buildPartyComposition(
       requirement: `버프력 ${input.minSecondaryBuffPower.toLocaleString()}만 이상`,
     });
   }
-  if (selectedCarries.length < meta.carrySlots) {
-    missingSlots.push({
-      role: 'carry',
-      count: meta.carrySlots - selectedCarries.length,
-      requirement: '아무 캐릭터',
-    });
-  }
 
   return {
     raidType: input.raidType,
     dealers: selectedDealers,
     primaryBuffer,
     secondaryBuffer,
-    carries: selectedCarries,
+    carryCount: meta.carrySlots,
     isComplete: missingSlots.length === 0,
     missingSlots,
   };
@@ -212,12 +180,11 @@ export function buildMultipleParties(
     // 완전한 파티가 아니면 마지막 불완전 파티로 종료
     if (!result.isComplete) break;
 
-    // 선발된 캐릭터를 남은 목록에서 제거
+    // 선발된 딜러/버퍼를 남은 목록에서 제거 (업둥은 등록 캐릭터 사용 안 함)
     const usedIds = new Set<string>();
     for (const d of result.dealers) usedIds.add(characterKey(d));
     if (result.primaryBuffer) usedIds.add(characterKey(result.primaryBuffer));
     if (result.secondaryBuffer) usedIds.add(characterKey(result.secondaryBuffer));
-    for (const c of result.carries) usedIds.add(characterKey(c));
 
     remainingCharacters = remainingCharacters.filter(
       (c) => !usedIds.has(characterKey(c)),

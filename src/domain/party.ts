@@ -1,7 +1,6 @@
 import type { RaidType } from '@/config/constants';
 import type {
   BufferCharacter,
-  CarryCharacter,
   DealerCharacter,
 } from './character';
 
@@ -11,7 +10,8 @@ export interface PartyComposition {
   dealers: DealerCharacter[];
   primaryBuffer: BufferCharacter | null;
   secondaryBuffer: BufferCharacter | null;
-  carries: CarryCharacter[];
+  /** 업둥 슬롯 수 (머릿수만 채움) */
+  carryCount: number;
   /** 구성 완성 여부 */
   isComplete: boolean;
   /** 부족한 슬롯 정보 */
@@ -19,7 +19,7 @@ export interface PartyComposition {
 }
 
 export interface MissingSlot {
-  role: 'dealer' | 'buffer' | 'secondaryBuffer' | 'carry';
+  role: 'dealer' | 'buffer' | 'secondaryBuffer';
   count: number;
   requirement: string;
 }

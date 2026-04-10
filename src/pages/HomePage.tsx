@@ -33,6 +33,8 @@ export function HomePage() {
   const [minDamage, setMinDamage] = useState('');
   const [minPrimaryBuff, setMinPrimaryBuff] = useState('');
   const [minSecondaryBuff, setMinSecondaryBuff] = useState('');
+  const [useTotalDamage, setUseTotalDamage] = useState(false);
+  const [minTotalDamage, setMinTotalDamage] = useState('');
 
   const characters = useCharacterStore((state) => state.characters);
   const adventureName = useCharacterStore((state) => state.adventureName);
@@ -47,6 +49,8 @@ export function HomePage() {
       minDealerDamage: Number(minDamage) || 0,
       minPrimaryBuffPower: Number(minPrimaryBuff) || 0,
       minSecondaryBuffPower: Number(minSecondaryBuff) || 0,
+      useTotalDamage,
+      minTotalDamage: Number(minTotalDamage) || 0,
     };
     buildParty(input);
   }
@@ -120,6 +124,34 @@ export function HomePage() {
                       onChange={(e) => setMinDamage(e.target.value)}
                     />
                   </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="useTotalDamage"
+                      type="checkbox"
+                      checked={useTotalDamage}
+                      onChange={(e) => setUseTotalDamage(e.target.checked)}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    <Label htmlFor="useTotalDamage" className="cursor-pointer">
+                      딜합벞교
+                    </Label>
+                  </div>
+
+                  {useTotalDamage && (
+                    <div className="space-y-2">
+                      <Label htmlFor="minTotalDamage">
+                        딜합 기준 (억)
+                      </Label>
+                      <Input
+                        id="minTotalDamage"
+                        type="number"
+                        placeholder="예: 400"
+                        value={minTotalDamage}
+                        onChange={(e) => setMinTotalDamage(e.target.value)}
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="minPrimaryBuff">

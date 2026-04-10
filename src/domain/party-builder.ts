@@ -69,6 +69,57 @@ export function filterBuffers(
 }
 
 /**
+ * 딜합벞교용 딜러 선별
+ * 최소딜 이상인 후보 중 딜 합계가 minTotalDamage 이상이 되는
+ * 가장 딜이 낮은 조합을 선택한다 (비싼 캐릭터 아끼기).
+ *
+ * 알고리즘: 오름차순 정렬된 후보에서 슬라이딩 윈도우로 탐색.
+ * 뒤에서부터 count명을 잡고, 합계가 넘으면 앞쪽으로 이동.
+ */
+function selectDealersByTotalDamage(
+  candidates: DealerCharacter[],
+  count: number,
+  minTotalDamage: number,
+): DealerCharacter[] {
+  if (candidates.length <= count) {
+    return candidates;
+  }
+
+  // 후보는 이미 오름차순 정렬됨
+  // 가장 딜이 낮은 count명 조합부터 시도
+  // 단순 조합 탐색 (후보가 많지 않으므로 충분)
+  const result = findMinCombination(candidates, count, minTotalDamage, 0);
+  return result ?? candidates.slice(0, count);
+}
+
+/** 재귀적으로 합계 조건을 만족하는 가장 딜이 낮은 조합 탐색 */
+function findMinCombination(
+  candidates: DealerCharacter[],
+  count: number,
+  minTotal: number,
+  startIdx: number,
+): DealerCharacter[] | null {
+  if (count === 0) {
+    return minTotal <= 0 ? [] : null;
+  }
+
+  for (let i = startIdx; i <= candidates.length - count; i++) {
+    const current = candidates[i];
+    const rest = findMinCombination(
+      candidates,
+      count - 1,
+      minTotal - current.damage,
+      i + 1,
+    );
+    if (rest) {
+      return [current, ...rest];
+    }
+  }
+
+  return null;
+}
+
+/**
  * 버퍼교환 최적 파티 구성 빌더
  */
 export function buildPartyComposition(
@@ -80,14 +131,16 @@ export function buildPartyComposition(
 ): PartyComposition {
   const meta = RAID_TYPE_META[input.raidType];
 
-  // 1. 딜러 선별 (딜 높은 순)
+  // 1. 딜러 선별
   const dealerCandidates = filterDealers(
     characters,
     damageMap,
     input.minDealerDamage,
     clearedRecords,
   );
-  const selectedDealers = dealerCandidates.slice(0, meta.dealerSlots);
+  const selectedDealers = input.useTotalDamage
+    ? selectDealersByTotalDamage(dealerCandidates, meta.dealerSlots, input.minTotalDamage)
+    : dealerCandidates.slice(0, meta.dealerSlots);
 
   // 2. 주 버퍼 선별 (버프력 높은 순)
   const usedIds = new Set(selectedDealers.map((d) => characterKey(d)));
@@ -119,8 +172,19 @@ export function buildPartyComposition(
     missingSlots.push({
       role: 'dealer',
       count: meta.dealerSlots - selectedDealers.length,
-      requirement: `딜 ${input.minDealerDamage.toLocaleString()}억 이상`,
+      requirement: input.useTotalDamage
+        ? `딜 ${input.minDealerDamage.toLocaleString()}억 이상, 딜합 ${input.minTotalDamage.toLocaleString()}억 이상`
+        : `딜 ${input.minDealerDamage.toLocaleString()}억 이상`,
     });
+  } else if (input.useTotalDamage) {
+    const totalDamage = selectedDealers.reduce((sum, d) => sum + d.damage, 0);
+    if (totalDamage < input.minTotalDamage) {
+      missingSlots.push({
+        role: 'dealer',
+        count: 0,
+        requirement: `딜합 ${input.minTotalDamage.toLocaleString()}억 필요 (현재 ${totalDamage.toLocaleString()}억)`,
+      });
+    }
   }
   if (meta.primaryBufferSlots > 0 && !primaryBuffer) {
     missingSlots.push({

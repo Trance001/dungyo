@@ -121,7 +121,7 @@ describe('buildPartyComposition', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0 },
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, buffMap, [],
     );
 
@@ -142,7 +142,7 @@ describe('buildPartyComposition', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_1CARRY, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0 },
+      { raidType: RAID_TYPES.PARTY_4_1CARRY, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, buffMap, [],
     );
 
@@ -159,7 +159,7 @@ describe('buildPartyComposition', () => {
     const damageMap = new Map([['cain:d1', 500]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0 },
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, new Map(), [],
     );
 
@@ -187,7 +187,7 @@ describe('buildMultipleParties', () => {
     const buffMap = new Map([['cain:b1', 50000], ['cain:b2', 40000]]);
 
     const results = buildMultipleParties(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0 },
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, buffMap, [],
     );
 
@@ -226,7 +226,7 @@ describe('buildMultipleParties', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const results = buildMultipleParties(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0 },
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, buffMap, [],
     );
 
@@ -237,11 +237,102 @@ describe('buildMultipleParties', () => {
 
   it('딜러도 버퍼도 없으면 빈 배열을 반환한다', () => {
     const results = buildMultipleParties(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0 },
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       [], new Map(), new Map(), [],
     );
 
     expect(results).toHaveLength(0);
+  });
+});
+
+describe('딜합벞교', () => {
+  it('딜합 조건을 만족하면 파티 구성 성공', () => {
+    const chars = [
+      makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
+      makeCharacter({ characterId: 'd2', jobGrowName: '런처(남)' }),
+      makeCharacter({ characterId: 'd3', jobGrowName: '배틀메이지' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+    ];
+    const damageMap = new Map([
+      ['cain:d1', 200], ['cain:d2', 100], ['cain:d3', 100],
+    ]);
+    const buffMap = new Map([['cain:b1', 50000]]);
+
+    const result = buildPartyComposition(
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400 },
+      chars, damageMap, buffMap, [],
+    );
+
+    expect(result.dealers).toHaveLength(3);
+    expect(result.isComplete).toBe(true);
+    const totalDamage = result.dealers.reduce((sum, d) => sum + d.damage, 0);
+    expect(totalDamage).toBeGreaterThanOrEqual(400);
+  });
+
+  it('개별 딜은 최소 이상이지만 딜합 미달 시 불완전', () => {
+    const chars = [
+      makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
+      makeCharacter({ characterId: 'd2', jobGrowName: '런처(남)' }),
+      makeCharacter({ characterId: 'd3', jobGrowName: '배틀메이지' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+    ];
+    const damageMap = new Map([
+      ['cain:d1', 100], ['cain:d2', 100], ['cain:d3', 100],
+    ]);
+    const buffMap = new Map([['cain:b1', 50000]]);
+
+    const result = buildPartyComposition(
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 500 },
+      chars, damageMap, buffMap, [],
+    );
+
+    expect(result.isComplete).toBe(false);
+  });
+
+  it('딜합 미사용 시 기존 로직과 동일', () => {
+    const chars = [
+      makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
+      makeCharacter({ characterId: 'd2', jobGrowName: '런처(남)' }),
+      makeCharacter({ characterId: 'd3', jobGrowName: '배틀메이지' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+    ];
+    const damageMap = new Map([
+      ['cain:d1', 200], ['cain:d2', 100], ['cain:d3', 100],
+    ]);
+    const buffMap = new Map([['cain:b1', 50000]]);
+
+    const result = buildPartyComposition(
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      chars, damageMap, buffMap, [],
+    );
+
+    expect(result.dealers).toHaveLength(3);
+    expect(result.isComplete).toBe(true);
+  });
+
+  it('딜합 모드에서 가장 딜이 낮은 조합을 선택한다', () => {
+    const chars = [
+      makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
+      makeCharacter({ characterId: 'd2', jobGrowName: '런처(남)' }),
+      makeCharacter({ characterId: 'd3', jobGrowName: '배틀메이지' }),
+      makeCharacter({ characterId: 'd4', jobGrowName: '엘레멘탈마스터' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+    ];
+    // d1=300, d2=200, d3=150, d4=100
+    const damageMap = new Map([
+      ['cain:d1', 300], ['cain:d2', 200], ['cain:d3', 150], ['cain:d4', 100],
+    ]);
+    const buffMap = new Map([['cain:b1', 50000]]);
+
+    const result = buildPartyComposition(
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400 },
+      chars, damageMap, buffMap, [],
+    );
+
+    // 가장 딜이 낮은 조합: d4(100) + d3(150) + d2(200) = 450 >= 400
+    expect(result.dealers).toHaveLength(3);
+    const selectedIds = result.dealers.map((d) => d.characterId);
+    expect(selectedIds).not.toContain('d1'); // d1(300)은 아껴야 함
   });
 });
 

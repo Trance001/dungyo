@@ -30,4 +30,8 @@ export interface BufferExchangeInput {
   minDealerDamage: number;
   minPrimaryBuffPower: number;
   minSecondaryBuffPower: number;
+  /** 딜합벞교 사용 여부 */
+  useTotalDamage: boolean;
+  /** 딜합 기준 (억 단위) */
+  minTotalDamage: number;
 }

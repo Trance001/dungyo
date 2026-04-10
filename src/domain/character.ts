@@ -64,6 +64,11 @@ export function toCharacterEntity(
   };
 }
 
+/** characterId가 API에서 조회된 유효한 값인지 확인 */
+export function hasValidCharacterId(character: { characterId: string }): boolean {
+  return character.characterId.length > 0;
+}
+
 /** 던담 모험단 검색 URL 생성 */
 export function getDundamAdventureUrl(adventureName: string): string {
   return `${API_CONFIG.DUNDAM_SEARCH_URL}?server=adven&name=${encodeURIComponent(adventureName)}`;

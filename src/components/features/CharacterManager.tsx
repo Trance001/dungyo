@@ -19,13 +19,14 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useCharacterStore } from '@/stores/character-store';
-import { getCharacterImageUrl, getDundamAdventureUrl, getDundamCharacterUrl, isBufferJob } from '@/domain/character';
+import { getCharacterImageUrl, getDundamAdventureUrl, getDundamCharacterUrl, hasValidCharacterId, isBufferJob } from '@/domain/character';
 import { characterKey } from '@/domain/party-builder';
 import { isAlreadyCleared } from '@/domain/weekly-clear';
 import { useAdventureSetup } from '@/hooks/useAdventureSetup';
 
 export function CharacterManager() {
   const [dundamText, setDundamText] = useState('');
+  const [snackbar, setSnackbar] = useState<string | null>(null);
   const { isLoading, progress, error: dundamError, setupFromDundam } = useAdventureSetup();
 
   const {
@@ -57,28 +58,44 @@ export function CharacterManager() {
     const statValue = isBuffer ? buffPowerMap.get(key) : damageMap.get(key);
     const cleared = isAlreadyCleared(weeklyClearRecords, c.characterId, c.serverId);
 
+    const hasKey = hasValidCharacterId(c);
+
+    function handleDundamClick() {
+      if (!hasKey) {
+        setSnackbar('API 호출 한도 초과로 던담 페이지에 접근할 수 없습니다.');
+        setTimeout(() => setSnackbar(null), 3000);
+        return;
+      }
+      window.open(getDundamCharacterUrl(c.serverId, c.characterId), '_blank');
+    }
+
     return (
       <TableRow key={key}>
         <TableCell>
           <div className="flex items-center gap-2">
-            <img
-              src={getCharacterImageUrl(c.serverId, c.characterId)}
-              alt={c.characterName}
-              className="w-8 h-8 rounded"
-              loading="lazy"
-            />
+            {hasKey ? (
+              <img
+                src={getCharacterImageUrl(c.serverId, c.characterId)}
+                alt={c.characterName}
+                className="w-8 h-8 rounded"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                {c.characterName.charAt(0)}
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-1">
                 <p className="text-sm font-medium">{c.characterName}</p>
-                <a
-                  href={getDundamCharacterUrl(c.serverId, c.characterId)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-1 text-xs text-muted-foreground hover:text-primary"
+                  onClick={handleDundamClick}
                 >
-                  <Button variant="ghost" size="sm" className="h-5 px-1 text-xs text-muted-foreground hover:text-primary">
-                    던담
-                  </Button>
-                </a>
+                  던담
+                </Button>
               </div>
             </div>
           </div>
@@ -238,6 +255,13 @@ export function CharacterManager() {
             )}
           </Card>
         </>
+      )}
+
+      {/* 스낵바 */}
+      {snackbar && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-lg bg-destructive px-4 py-2 text-sm text-destructive-foreground shadow-lg">
+          {snackbar}
+        </div>
       )}
     </div>
   );

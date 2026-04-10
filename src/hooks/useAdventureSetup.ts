@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { useCharacterStore } from '@/stores/character-store';
 import { getCharactersByNames } from '@/services/neople-api';
 import { parseDundamText } from '@/domain/dundam-parser';
-import { isBufferJob, toCharacterEntity } from '@/domain/character';
+import { isBufferJob } from '@/domain/character';
 
+import type { Character } from '@/domain/character';
 import type { DnfServerId } from '@/config/constants';
 import type { DundamCharacterData } from '@/domain/dundam-parser';
+import type { NeopleCharacterInfoResponse } from '@/domain/api-types';
 
 interface UseAdventureSetupReturn {
   isLoading: boolean;
@@ -40,7 +42,9 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
       return;
     }
 
-    // 네오플 API로 실제 characterId 조회
+    const serverId = parsed.serverId as DnfServerId;
+
+    // 네오플 API로 실제 characterId 조회 시도
     setIsLoading(true);
     setProgress(`0/${parsed.characters.length} 캐릭터 조회 중...`);
 
@@ -51,22 +55,35 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
       (completed, total) => setProgress(`${completed}/${total} 캐릭터 조회 중...`),
     );
 
-    if (apiResult.ok === false) {
-      setError(apiResult.error);
-      setIsLoading(false);
-      setProgress(null);
-      return;
+    // API 결과를 이름 기준으로 매핑
+    const apiMap = new Map<string, NeopleCharacterInfoResponse>();
+    if (apiResult.ok) {
+      for (const info of apiResult.data) {
+        apiMap.set(info.characterName, info);
+      }
     }
 
-    // API 결과와 던담 파싱 결과를 매칭하여 캐릭터 등록
-    const serverId = parsed.serverId as DnfServerId;
-    const apiData = apiResult.data;
-    const characters = apiData.map((info) => toCharacterEntity(info, serverId));
+    // 던담 파싱 데이터를 기반으로 캐릭터 등록 (API 결과가 있으면 보강)
+    const characters: Character[] = parsed.characters.map((c) => {
+      const apiInfo = apiMap.get(c.characterName);
+      return {
+        serverId,
+        characterId: apiInfo?.characterId ?? '',
+        characterName: c.characterName,
+        level: apiInfo?.level ?? 0,
+        jobId: apiInfo?.jobId ?? '',
+        jobGrowId: apiInfo?.jobGrowId ?? '',
+        jobName: apiInfo?.jobName ?? '',
+        jobGrowName: c.jobGrowName,
+        adventureName: c.adventureName,
+        fame: 0,
+      };
+    });
 
     setAdventure(parsed.serverId, parsed.adventureName);
     setCharacters(characters);
 
-    // 던담 데이터에서 딜/버프 수치 자동 입력 (characterName으로 매칭)
+    // 딜/버프 수치 자동 입력
     const dundamMap = new Map<string, DundamCharacterData>();
     for (const c of parsed.characters) {
       dundamMap.set(c.characterName, c);
@@ -85,6 +102,10 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
 
     setIsLoading(false);
     setProgress(null);
+
+    if (!apiResult.ok) {
+      setError('API 호출 한도 초과로 캐릭터 이미지/던담 링크를 불러오지 못했습니다. 수치 입력 및 파티 구성은 정상 이용 가능합니다.');
+    }
   }
 
   return { isLoading, progress, error, setupFromDundam };

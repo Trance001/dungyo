@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { RAID_TYPE_META } from '@/config/constants';
 import type { MissingSlot, PartyComposition } from '@/domain/party';
 import type { RoledCharacter } from '@/domain/character';
-import { getCharacterImageUrl } from '@/domain/character';
+import { getCharacterImageUrl, hasValidCharacterId } from '@/domain/character';
 import { isAlreadyCleared } from '@/domain/weekly-clear';
 import { useCharacterStore } from '@/stores/character-store';
 
@@ -183,14 +183,22 @@ function CharacterSlotCard({
   cleared,
   onToggleCleared,
 }: CharacterSlotCardProps) {
+  const hasKey = hasValidCharacterId(character);
+
   return (
     <div className={`flex items-center gap-3 p-3 rounded-lg border ${cleared ? 'border-muted bg-muted/50 opacity-60' : 'border-border bg-card'}`}>
-      <img
-        src={getCharacterImageUrl(character.serverId, character.characterId)}
-        alt={character.characterName}
-        className="w-12 h-12 rounded"
-        loading="lazy"
-      />
+      {hasKey ? (
+        <img
+          src={getCharacterImageUrl(character.serverId, character.characterId)}
+          alt={character.characterName}
+          className="w-12 h-12 rounded"
+          loading="lazy"
+        />
+      ) : (
+        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-sm text-muted-foreground">
+          {character.characterName.charAt(0)}
+        </div>
+      )}
       <div className="flex-1 min-w-0">
         <p className={`font-medium text-sm truncate ${cleared ? 'line-through' : ''}`}>
           {character.characterName}

@@ -11,6 +11,7 @@ import { RAID_TYPE_META } from '@/config/constants';
 import type { MissingSlot, PartyComposition } from '@/domain/party';
 import type { RoledCharacter } from '@/domain/character';
 import { getCharacterImageUrl } from '@/domain/character';
+import { isAlreadyCleared } from '@/domain/weekly-clear';
 import { useCharacterStore } from '@/stores/character-store';
 
 interface PartyResultProps {
@@ -20,7 +21,9 @@ interface PartyResultProps {
 
 export function PartyResult({ composition, partyIndex }: PartyResultProps) {
   const meta = RAID_TYPE_META[composition.raidType];
-  const { markCleared } = useCharacterStore();
+  const markCleared = useCharacterStore((state) => state.markCleared);
+  const unmarkCleared = useCharacterStore((state) => state.unmarkCleared);
+  const weeklyClearRecords = useCharacterStore((state) => state.weeklyClearRecords);
 
   const title = partyIndex !== undefined
     ? `파티 ${partyIndex + 1} - ${meta.label}`
@@ -52,15 +55,22 @@ export function PartyResult({ composition, partyIndex }: PartyResultProps) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {composition.dealers.map((dealer) => (
-                <CharacterSlotCard
-                  key={`${dealer.serverId}:${dealer.characterId}`}
-                  character={dealer}
-                  stat={`딜: ${dealer.damage.toLocaleString()}억`}
-                  roleColor="text-red-500"
-                  onMarkCleared={() => markCleared(dealer)}
-                />
-              ))}
+              {composition.dealers.map((dealer) => {
+                const cleared = isAlreadyCleared(weeklyClearRecords, dealer.characterId, dealer.serverId);
+                return (
+                  <CharacterSlotCard
+                    key={`${dealer.serverId}:${dealer.characterId}`}
+                    character={dealer}
+                    stat={`딜: ${dealer.damage.toLocaleString()}억`}
+                    roleColor="text-red-500"
+                    cleared={cleared}
+                    onToggleCleared={() => cleared
+                      ? unmarkCleared(dealer.serverId, dealer.characterId)
+                      : markCleared(dealer)
+                    }
+                  />
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -73,12 +83,21 @@ export function PartyResult({ composition, partyIndex }: PartyResultProps) {
             <CardTitle className="text-base">주 버퍼</CardTitle>
           </CardHeader>
           <CardContent>
-            <CharacterSlotCard
-              character={composition.primaryBuffer}
-              stat={`버프력: ${composition.primaryBuffer.buffPower.toLocaleString()}만`}
-              roleColor="text-blue-500"
-              onMarkCleared={() => markCleared(composition.primaryBuffer!)}
-            />
+            {(() => {
+              const cleared = isAlreadyCleared(weeklyClearRecords, composition.primaryBuffer!.characterId, composition.primaryBuffer!.serverId);
+              return (
+                <CharacterSlotCard
+                  character={composition.primaryBuffer!}
+                  stat={`버프력: ${composition.primaryBuffer!.buffPower.toLocaleString()}만`}
+                  roleColor="text-blue-500"
+                  cleared={cleared}
+                  onToggleCleared={() => cleared
+                    ? unmarkCleared(composition.primaryBuffer!.serverId, composition.primaryBuffer!.characterId)
+                    : markCleared(composition.primaryBuffer!)
+                  }
+                />
+              );
+            })()}
           </CardContent>
         </Card>
       )}
@@ -90,12 +109,21 @@ export function PartyResult({ composition, partyIndex }: PartyResultProps) {
             <CardTitle className="text-base">부 버퍼</CardTitle>
           </CardHeader>
           <CardContent>
-            <CharacterSlotCard
-              character={composition.secondaryBuffer}
-              stat={`버프력: ${composition.secondaryBuffer.buffPower.toLocaleString()}만`}
-              roleColor="text-cyan-500"
-              onMarkCleared={() => markCleared(composition.secondaryBuffer!)}
-            />
+            {(() => {
+              const cleared = isAlreadyCleared(weeklyClearRecords, composition.secondaryBuffer!.characterId, composition.secondaryBuffer!.serverId);
+              return (
+                <CharacterSlotCard
+                  character={composition.secondaryBuffer!}
+                  stat={`버프력: ${composition.secondaryBuffer!.buffPower.toLocaleString()}만`}
+                  roleColor="text-cyan-500"
+                  cleared={cleared}
+                  onToggleCleared={() => cleared
+                    ? unmarkCleared(composition.secondaryBuffer!.serverId, composition.secondaryBuffer!.characterId)
+                    : markCleared(composition.secondaryBuffer!)
+                  }
+                />
+              );
+            })()}
           </CardContent>
         </Card>
       )}
@@ -144,17 +172,19 @@ interface CharacterSlotCardProps {
   character: RoledCharacter;
   stat: string;
   roleColor: string;
-  onMarkCleared: () => void;
+  cleared: boolean;
+  onToggleCleared: () => void;
 }
 
 function CharacterSlotCard({
   character,
   stat,
   roleColor,
-  onMarkCleared,
+  cleared,
+  onToggleCleared,
 }: CharacterSlotCardProps) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+    <div className={`flex items-center gap-3 p-3 rounded-lg border ${cleared ? 'border-muted bg-muted/50 opacity-60' : 'border-border bg-card'}`}>
       <img
         src={getCharacterImageUrl(character.serverId, character.characterId)}
         alt={character.characterName}
@@ -162,21 +192,21 @@ function CharacterSlotCard({
         loading="lazy"
       />
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">
+        <p className={`font-medium text-sm truncate ${cleared ? 'line-through' : ''}`}>
           {character.characterName}
         </p>
         <p className="text-xs text-muted-foreground truncate">
-          {character.jobGrowName} Lv.{character.level}
+          {character.jobGrowName}
         </p>
         <p className={`text-xs font-medium ${roleColor}`}>{stat}</p>
       </div>
       <Button
-        variant="outline"
+        variant={cleared ? 'secondary' : 'outline'}
         size="sm"
-        onClick={onMarkCleared}
+        onClick={onToggleCleared}
         className="shrink-0"
       >
-        클리어
+        {cleared ? '완료' : '클리어'}
       </Button>
     </div>
   );

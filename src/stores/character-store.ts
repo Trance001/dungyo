@@ -35,6 +35,7 @@ interface CharacterActions {
   setBuffPower: (serverId: string, characterId: string, buffPower: number) => void;
   markCleared: (character: Character) => void;
   unmarkCleared: (serverId: string, characterId: string) => void;
+  clearAllWeeklyRecords: () => void;
   cleanExpiredClears: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -134,6 +135,11 @@ export const useCharacterStore = create<CharacterState & CharacterActions>(
             ),
         ),
       }));
+      get().saveToStorage();
+    },
+
+    clearAllWeeklyRecords: () => {
+      set({ weeklyClearRecords: [] });
       get().saveToStorage();
     },
 

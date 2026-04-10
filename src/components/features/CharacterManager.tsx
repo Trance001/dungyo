@@ -39,6 +39,8 @@ export function CharacterManager() {
     setBuffPower,
     markCleared,
     unmarkCleared,
+    clearAdventure,
+    clearAllWeeklyRecords,
   } = useCharacterStore();
 
   const dealers = characters.filter((c) => !isBufferJob(c.jobGrowName));
@@ -149,18 +151,28 @@ export function CharacterManager() {
         </CardContent>
       </Card>
 
-      {/* 던담 바로가기 */}
-      {adventureName && (
-        <div className="flex justify-end">
-          <a
-            href={getDundamAdventureUrl(adventureName)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button variant="outline" size="sm">
-              던담에서 스펙 확인
+      {/* 던담 바로가기 + 일괄 작업 */}
+      {characters.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={clearAllWeeklyRecords}>
+              클리어 일괄 해제
             </Button>
-          </a>
+            <Button variant="destructive" size="sm" onClick={clearAdventure}>
+              전체 초기화
+            </Button>
+          </div>
+          {adventureName && (
+            <a
+              href={getDundamAdventureUrl(adventureName)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="sm">
+                던담에서 스펙 확인
+              </Button>
+            </a>
+          )}
         </div>
       )}
 

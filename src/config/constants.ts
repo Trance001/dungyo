@@ -26,6 +26,9 @@ export const API_CONFIG = {
   DUNDAM_CHARACTER_URL: 'https://dundam.xyz/character',
 } as const;
 
+/** 등록 가능한 최대 캐릭터 수 */
+export const MAX_CHARACTERS = 100;
+
 /** 주간 초기화 기준 (매주 목요일 06:00 KST) */
 export const WEEKLY_RESET = {
   DAY_OF_WEEK: 4, // Thursday

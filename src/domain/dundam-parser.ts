@@ -1,3 +1,4 @@
+import { MAX_CHARACTERS } from '@/config/constants';
 import { isBufferJob } from './character';
 
 /** 던담 파싱 결과 */
@@ -57,6 +58,8 @@ export function parseDundamText(text: string): DundamParseResult {
   let serverId: string | null = null;
 
   for (let i = 0; i < lines.length; i++) {
+    if (characters.length >= MAX_CHARACTERS) break;
+
     const line = lines[i];
 
     // 서버명 감지

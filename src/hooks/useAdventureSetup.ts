@@ -4,6 +4,7 @@ import { useCharacterStore } from '@/stores/character-store';
 import { getCharactersByNames } from '@/services/neople-api';
 import { parseDundamText } from '@/domain/dundam-parser';
 import { isBufferJob } from '@/domain/character';
+import { MAX_CHARACTERS } from '@/config/constants';
 
 import type { Character } from '@/domain/character';
 import type { DnfServerId } from '@/config/constants';
@@ -80,8 +81,11 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
       };
     });
 
+    const totalParsed = characters.length;
+    const registeredCharacters = characters.slice(0, MAX_CHARACTERS);
+
     setAdventure(parsed.serverId, parsed.adventureName);
-    setCharacters(characters);
+    setCharacters(registeredCharacters);
 
     // 딜/버프 수치 자동 입력
     const dundamMap = new Map<string, DundamCharacterData>();
@@ -89,7 +93,7 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
       dundamMap.set(c.characterName, c);
     }
 
-    for (const character of characters) {
+    for (const character of registeredCharacters) {
       const dundam = dundamMap.get(character.characterName);
       if (!dundam) continue;
 
@@ -103,8 +107,15 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
     setIsLoading(false);
     setProgress(null);
 
+    const warnings: string[] = [];
+    if (totalParsed > MAX_CHARACTERS) {
+      warnings.push(`캐릭터가 ${totalParsed}개 감지되어 상위 ${MAX_CHARACTERS}개만 등록되었습니다.`);
+    }
     if (!apiResult.ok) {
-      setError('API 호출 한도 초과로 캐릭터 이미지/던담 링크를 불러오지 못했습니다. 수치 입력 및 파티 구성은 정상 이용 가능합니다.');
+      warnings.push('API 호출 한도 초과로 캐릭터 이미지/던담 링크를 불러오지 못했습니다. 수치 입력 및 파티 구성은 정상 이용 가능합니다.');
+    }
+    if (warnings.length > 0) {
+      setError(warnings.join(' '));
     }
   }
 

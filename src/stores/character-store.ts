@@ -3,7 +3,7 @@ import type { Character } from '@/domain/character';
 import type { WeeklyClearRecord } from '@/domain/weekly-clear';
 import { getCurrentWeekKey } from '@/domain/weekly-clear';
 import { storage } from '@/services/storage';
-import { STORAGE_KEYS } from '@/config/constants';
+import { MAX_CHARACTERS, STORAGE_KEYS } from '@/config/constants';
 import { characterKey } from '@/domain/party-builder';
 
 interface CharacterState {
@@ -65,12 +65,13 @@ export const useCharacterStore = create<CharacterState & CharacterActions>(
     },
 
     setCharacters: (characters) => {
-      set({ characters });
+      set({ characters: characters.slice(0, MAX_CHARACTERS) });
       get().saveToStorage();
     },
 
     addCharacter: (character) => {
       set((state) => {
+        if (state.characters.length >= MAX_CHARACTERS) return state;
         const key = characterKey(character);
         const exists = state.characters.some(
           (c) => characterKey(c) === key,

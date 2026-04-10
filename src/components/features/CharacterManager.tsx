@@ -24,9 +24,13 @@ import { characterKey } from '@/domain/party-builder';
 import { isAlreadyCleared } from '@/domain/weekly-clear';
 import { useAdventureSetup } from '@/hooks/useAdventureSetup';
 
+type SortOrder = 'none' | 'asc' | 'desc';
+
 export function CharacterManager() {
   const [dundamText, setDundamText] = useState('');
   const [snackbar, setSnackbar] = useState<string | null>(null);
+  const [dealerSort, setDealerSort] = useState<SortOrder>('none');
+  const [bufferSort, setBufferSort] = useState<SortOrder>('none');
   const { isLoading, progress, error: dundamError, setupFromDundam } = useAdventureSetup();
 
   const {
@@ -44,8 +48,24 @@ export function CharacterManager() {
     clearAllWeeklyRecords,
   } = useCharacterStore();
 
-  const dealers = characters.filter((c) => !isBufferJob(c.jobGrowName));
-  const buffers = characters.filter((c) => isBufferJob(c.jobGrowName));
+  const dealersRaw = characters.filter((c) => !isBufferJob(c.jobGrowName));
+  const buffersRaw = characters.filter((c) => isBufferJob(c.jobGrowName));
+
+  const dealers = dealerSort === 'none'
+    ? dealersRaw
+    : [...dealersRaw].sort((a, b) => {
+        const da = damageMap.get(characterKey(a)) ?? 0;
+        const db = damageMap.get(characterKey(b)) ?? 0;
+        return dealerSort === 'asc' ? da - db : db - da;
+      });
+
+  const buffers = bufferSort === 'none'
+    ? buffersRaw
+    : [...buffersRaw].sort((a, b) => {
+        const ba = buffPowerMap.get(characterKey(a)) ?? 0;
+        const bb = buffPowerMap.get(characterKey(b)) ?? 0;
+        return bufferSort === 'asc' ? ba - bb : bb - ba;
+      });
 
   async function handleDundamUpdate() {
     if (!dundamText.trim()) return;
@@ -215,7 +235,12 @@ export function CharacterManager() {
                     <TableRow>
                       <TableHead>캐릭터</TableHead>
                       <TableHead>직업</TableHead>
-                      <TableHead>딜 (억)</TableHead>
+                      <TableHead
+                        className="cursor-pointer select-none hover:text-foreground"
+                        onClick={() => setDealerSort((prev) => prev === 'none' ? 'desc' : prev === 'desc' ? 'asc' : 'none')}
+                      >
+                        딜 (억) {dealerSort === 'desc' ? '↓' : dealerSort === 'asc' ? '↑' : ''}
+                      </TableHead>
                       <TableHead>클리어</TableHead>
                       <TableHead className="w-16"></TableHead>
                     </TableRow>
@@ -242,7 +267,12 @@ export function CharacterManager() {
                     <TableRow>
                       <TableHead>캐릭터</TableHead>
                       <TableHead>직업</TableHead>
-                      <TableHead>버프력 (만)</TableHead>
+                      <TableHead
+                        className="cursor-pointer select-none hover:text-foreground"
+                        onClick={() => setBufferSort((prev) => prev === 'none' ? 'desc' : prev === 'desc' ? 'asc' : 'none')}
+                      >
+                        버프력 (만) {bufferSort === 'desc' ? '↓' : bufferSort === 'asc' ? '↑' : ''}
+                      </TableHead>
                       <TableHead>클리어</TableHead>
                       <TableHead className="w-16"></TableHead>
                     </TableRow>

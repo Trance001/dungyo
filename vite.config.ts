@@ -6,9 +6,7 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // GitHub Pages 배포 시 base path 설정
-  // 리포지토리명에 맞게 변경 필요 (예: '/dnf_gyo/')
-  base: process.env.GITHUB_ACTIONS ? '/dungyo/' : '/',
+  base: '/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

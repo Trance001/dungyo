@@ -41,10 +41,78 @@ export function CharacterManager() {
     unmarkCleared,
   } = useCharacterStore();
 
+  const dealers = characters.filter((c) => !isBufferJob(c.jobGrowName));
+  const buffers = characters.filter((c) => isBufferJob(c.jobGrowName));
+
   async function handleDundamUpdate() {
     if (!dundamText.trim()) return;
     await setupFromDundam(dundamText);
     setDundamText('');
+  }
+
+  function renderCharacterRow(c: typeof characters[number], isBuffer: boolean) {
+    const key = characterKey(c);
+    const statValue = isBuffer ? buffPowerMap.get(key) : damageMap.get(key);
+    const cleared = isAlreadyCleared(weeklyClearRecords, c.characterId, c.serverId);
+
+    return (
+      <TableRow key={key}>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <img
+              src={getCharacterImageUrl(c.serverId, c.characterId)}
+              alt={c.characterName}
+              className="w-8 h-8 rounded"
+              loading="lazy"
+            />
+            <div>
+              <div className="flex items-center gap-1">
+                <p className="text-sm font-medium">{c.characterName}</p>
+                <a
+                  href={getDundamCharacterUrl(c.serverId, c.characterId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="ghost" size="sm" className="h-5 px-1 text-xs text-muted-foreground hover:text-primary">
+                    던담
+                  </Button>
+                </a>
+              </div>
+            </div>
+          </div>
+        </TableCell>
+        <TableCell className="text-sm">{c.jobGrowName}</TableCell>
+        <TableCell>
+          <Input
+            type="number"
+            className="w-32 h-8 text-sm"
+            placeholder={isBuffer ? '버프력' : '딜'}
+            value={statValue ?? ''}
+            onChange={(e) =>
+              isBuffer
+                ? setBuffPower(c.serverId, c.characterId, Number(e.target.value))
+                : setDamage(c.serverId, c.characterId, Number(e.target.value))
+            }
+          />
+        </TableCell>
+        <TableCell>
+          {cleared ? (
+            <Badge variant="secondary" className="cursor-pointer" onClick={() => unmarkCleared(c.serverId, c.characterId)}>
+              완료
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="cursor-pointer" onClick={() => markCleared(c)}>
+              미완료
+            </Badge>
+          )}
+        </TableCell>
+        <TableCell>
+          <Button variant="ghost" size="sm" onClick={() => removeCharacter(c.serverId, c.characterId)} className="text-destructive hover:text-destructive">
+            삭제
+          </Button>
+        </TableCell>
+      </TableRow>
+    );
   }
 
   return (
@@ -81,167 +149,84 @@ export function CharacterManager() {
         </CardContent>
       </Card>
 
-      {/* 등록된 캐릭터 목록 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>등록된 캐릭터 ({characters.length})</CardTitle>
-              <CardDescription>
-                각 캐릭터의 딜/버프력 수치를 입력하고 주간 클리어 여부를 관리합니다
-              </CardDescription>
-            </div>
-            {adventureName && (
-              <a
-                href={getDundamAdventureUrl(adventureName)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" size="sm">
-                  던담에서 스펙 확인
-                </Button>
-              </a>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {characters.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              등록된 캐릭터가 없습니다. 던담 데이터를 붙여넣어 등록하세요.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>캐릭터</TableHead>
-                  <TableHead>직업</TableHead>
-                  <TableHead>딜(억)/버프(만)</TableHead>
-                  <TableHead>클리어</TableHead>
-                  <TableHead className="w-16"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {characters.map((c) => {
-                  const key = characterKey(c);
-                  const damage = damageMap.get(key);
-                  const buffPower = buffPowerMap.get(key);
-                  const cleared = isAlreadyCleared(
-                    weeklyClearRecords,
-                    c.characterId,
-                    c.serverId,
-                  );
+      {/* 던담 바로가기 */}
+      {adventureName && (
+        <div className="flex justify-end">
+          <a
+            href={getDundamAdventureUrl(adventureName)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button variant="outline" size="sm">
+              던담에서 스펙 확인
+            </Button>
+          </a>
+        </div>
+      )}
 
-                  return (
-                    <TableRow key={key}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={getCharacterImageUrl(c.serverId, c.characterId)}
-                            alt={c.characterName}
-                            className="w-8 h-8 rounded"
-                            loading="lazy"
-                          />
-                          <div>
-                            <div className="flex items-center gap-1">
-                              <p className="text-sm font-medium">
-                                {c.characterName}
-                              </p>
-                              <a
-                                href={getDundamCharacterUrl(c.serverId, c.characterId)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <Button variant="ghost" size="sm" className="h-5 px-1 text-xs text-muted-foreground hover:text-primary">
-                                  던담
-                                </Button>
-                              </a>
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm">{c.jobGrowName}</span>
-                          <Badge
-                            variant={isBufferJob(c.jobGrowName) ? 'default' : 'secondary'}
-                            className={isBufferJob(c.jobGrowName) ? 'bg-blue-500 hover:bg-blue-600 text-xs' : 'bg-red-500 hover:bg-red-600 text-white text-xs'}
-                          >
-                            {isBufferJob(c.jobGrowName) ? '버퍼' : '딜러'}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {isBufferJob(c.jobGrowName) ? (
-                          <Input
-                            type="number"
-                            className="w-32 h-8 text-sm"
-                            placeholder="버프력 (만)"
-                            value={buffPower ?? ''}
-                            onChange={(e) =>
-                              setBuffPower(
-                                c.serverId,
-                                c.characterId,
-                                Number(e.target.value),
-                              )
-                            }
-                          />
-                        ) : (
-                          <Input
-                            type="number"
-                            className="w-32 h-8 text-sm"
-                            placeholder="딜 (억)"
-                            value={damage ?? ''}
-                            onChange={(e) =>
-                              setDamage(
-                                c.serverId,
-                                c.characterId,
-                                Number(e.target.value),
-                              )
-                            }
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {cleared ? (
-                          <Badge
-                            variant="secondary"
-                            className="cursor-pointer"
-                            onClick={() =>
-                              unmarkCleared(c.serverId, c.characterId)
-                            }
-                          >
-                            완료
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="cursor-pointer"
-                            onClick={() => markCleared(c)}
-                          >
-                            미완료
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            removeCharacter(c.serverId, c.characterId)
-                          }
-                          className="text-destructive hover:text-destructive"
-                        >
-                          삭제
-                        </Button>
-                      </TableCell>
+      {characters.length === 0 ? (
+        <Card>
+          <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
+            등록된 캐릭터가 없습니다. 던담 데이터를 붙여넣어 등록하세요.
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* 딜러 섹션 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                <span className="text-red-500">딜러</span> ({dealers.length})
+              </CardTitle>
+            </CardHeader>
+            {dealers.length > 0 && (
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>캐릭터</TableHead>
+                      <TableHead>직업</TableHead>
+                      <TableHead>딜 (억)</TableHead>
+                      <TableHead>클리어</TableHead>
+                      <TableHead className="w-16"></TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {dealers.map((c) => renderCharacterRow(c, false))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* 버퍼 섹션 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                <span className="text-blue-500">버퍼</span> ({buffers.length})
+              </CardTitle>
+            </CardHeader>
+            {buffers.length > 0 && (
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>캐릭터</TableHead>
+                      <TableHead>직업</TableHead>
+                      <TableHead>버프력 (만)</TableHead>
+                      <TableHead>클리어</TableHead>
+                      <TableHead className="w-16"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {buffers.map((c) => renderCharacterRow(c, true))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            )}
+          </Card>
+        </>
+      )}
     </div>
   );
 }

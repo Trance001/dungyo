@@ -19,14 +19,14 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useCharacterStore } from '@/stores/character-store';
-import { getDundamAdventureUrl, getDundamCharacterUrl, isBufferJob } from '@/domain/character';
+import { getCharacterImageUrl, getDundamAdventureUrl, getDundamCharacterUrl, isBufferJob } from '@/domain/character';
 import { characterKey } from '@/domain/party-builder';
 import { isAlreadyCleared } from '@/domain/weekly-clear';
 import { useAdventureSetup } from '@/hooks/useAdventureSetup';
 
 export function CharacterManager() {
   const [dundamText, setDundamText] = useState('');
-  const { error: dundamError, setupFromDundam } = useAdventureSetup();
+  const { isLoading, progress, error: dundamError, setupFromDundam } = useAdventureSetup();
 
   const {
     characters,
@@ -41,9 +41,9 @@ export function CharacterManager() {
     unmarkCleared,
   } = useCharacterStore();
 
-  function handleDundamUpdate() {
+  async function handleDundamUpdate() {
     if (!dundamText.trim()) return;
-    setupFromDundam(dundamText);
+    await setupFromDundam(dundamText);
     setDundamText('');
   }
 
@@ -66,13 +66,17 @@ export function CharacterManager() {
               rows={3}
               className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
             />
-            <Button onClick={handleDundamUpdate} disabled={!dundamText.trim()} className="self-end">
-              갱신
+            <Button onClick={handleDundamUpdate} disabled={isLoading || !dundamText.trim()} className="self-end">
+              {isLoading ? '조회 중...' : '갱신'}
             </Button>
           </div>
 
           {dundamError && (
             <p className="text-sm text-destructive">{dundamError}</p>
+          )}
+
+          {progress && (
+            <p className="text-sm text-muted-foreground">{progress}</p>
           )}
         </CardContent>
       </Card>
@@ -131,6 +135,12 @@ export function CharacterManager() {
                     <TableRow key={key}>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          <img
+                            src={getCharacterImageUrl(c.serverId, c.characterId)}
+                            alt={c.characterName}
+                            className="w-8 h-8 rounded"
+                            loading="lazy"
+                          />
                           <div>
                             <div className="flex items-center gap-1">
                               <p className="text-sm font-medium">

@@ -153,16 +153,10 @@ function CharacterSlotCard({
   roleColor,
   onMarkCleared,
 }: CharacterSlotCardProps) {
-  const imageUrl = getCharacterImageUrl(
-    character.serverId,
-    character.characterId,
-    1,
-  );
-
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
       <img
-        src={imageUrl}
+        src={getCharacterImageUrl(character.serverId, character.characterId)}
         alt={character.characterName}
         className="w-12 h-12 rounded"
         loading="lazy"

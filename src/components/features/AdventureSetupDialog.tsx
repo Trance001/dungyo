@@ -18,12 +18,12 @@ interface AdventureSetupDialogProps {
 
 export function AdventureSetupDialog({ open }: AdventureSetupDialogProps) {
   const [pastedText, setPastedText] = useState('');
-  const { error, setupFromDundam } = useAdventureSetup();
+  const { isLoading, progress, error, setupFromDundam } = useAdventureSetup();
   const adventureName = useCharacterStore((state) => state.adventureName);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!pastedText.trim()) return;
-    setupFromDundam(pastedText);
+    await setupFromDundam(pastedText);
   }
 
   return (
@@ -57,12 +57,16 @@ export function AdventureSetupDialog({ open }: AdventureSetupDialogProps) {
             <p className="text-sm text-destructive">{error}</p>
           )}
 
+          {progress && (
+            <p className="text-sm text-muted-foreground">{progress}</p>
+          )}
+
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={!pastedText.trim()}
+            disabled={isLoading || !pastedText.trim()}
           >
-            던담 데이터로 모험단 설정
+            {isLoading ? '캐릭터 조회 중...' : '던담 데이터로 모험단 설정'}
           </Button>
         </div>
       </DialogContent>

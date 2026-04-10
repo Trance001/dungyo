@@ -180,6 +180,53 @@ export function buildPartyComposition(
   };
 }
 
+/**
+ * 복수 파티 구성 빌더
+ * 캐릭터 중복 없이 가능한 모든 파티를 순차적으로 구성한다.
+ * 마지막 불완전 파티도 포함하여 반환한다.
+ */
+export function buildMultipleParties(
+  input: BufferExchangeInput,
+  characters: Character[],
+  damageMap: Map<string, number>,
+  buffPowerMap: Map<string, number>,
+  clearedRecords: WeeklyClearRecord[],
+): PartyComposition[] {
+  const parties: PartyComposition[] = [];
+  let remainingCharacters = [...characters];
+
+  while (remainingCharacters.length > 0) {
+    const result = buildPartyComposition(
+      input,
+      remainingCharacters,
+      damageMap,
+      buffPowerMap,
+      clearedRecords,
+    );
+
+    // 딜러도 버퍼도 없으면 더 이상 파티 구성 불가
+    if (result.dealers.length === 0 && !result.primaryBuffer) break;
+
+    parties.push(result);
+
+    // 완전한 파티가 아니면 마지막 불완전 파티로 종료
+    if (!result.isComplete) break;
+
+    // 선발된 캐릭터를 남은 목록에서 제거
+    const usedIds = new Set<string>();
+    for (const d of result.dealers) usedIds.add(characterKey(d));
+    if (result.primaryBuffer) usedIds.add(characterKey(result.primaryBuffer));
+    if (result.secondaryBuffer) usedIds.add(characterKey(result.secondaryBuffer));
+    for (const c of result.carries) usedIds.add(characterKey(c));
+
+    remainingCharacters = remainingCharacters.filter(
+      (c) => !usedIds.has(characterKey(c)),
+    );
+  }
+
+  return parties;
+}
+
 /** 캐릭터 고유 키 (서버+ID 조합) */
 export function characterKey(c: { serverId: string; characterId: string }): string {
   return `${c.serverId}:${c.characterId}`;

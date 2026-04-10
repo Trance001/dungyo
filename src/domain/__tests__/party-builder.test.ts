@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterDealers, filterBuffers, filterCarries, characterKey, buildPartyComposition } from '../party-builder';
+import { filterDealers, filterBuffers, filterCarries, characterKey, buildPartyComposition, buildMultipleParties } from '../party-builder';
 import { getCurrentWeekKey } from '../weekly-clear';
 import { RAID_TYPES } from '@/config/constants';
 
@@ -180,6 +180,83 @@ describe('buildPartyComposition', () => {
 
     expect(result.isComplete).toBe(false);
     expect(result.missingSlots.length).toBeGreaterThan(0);
+  });
+});
+
+describe('buildMultipleParties', () => {
+  it('캐릭터가 충분하면 복수 파티를 구성한다', () => {
+    const chars = [
+      makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
+      makeCharacter({ characterId: 'd2', jobGrowName: '런처(남)' }),
+      makeCharacter({ characterId: 'd3', jobGrowName: '배틀메이지' }),
+      makeCharacter({ characterId: 'd4', jobGrowName: '엘레멘탈마스터' }),
+      makeCharacter({ characterId: 'd5', jobGrowName: '스트라이커' }),
+      makeCharacter({ characterId: 'd6', jobGrowName: '넨마스터' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+      makeCharacter({ characterId: 'b2', jobGrowName: '眞 인챈트리스' }),
+    ];
+    const damageMap = new Map([
+      ['cain:d1', 500], ['cain:d2', 400], ['cain:d3', 300],
+      ['cain:d4', 250], ['cain:d5', 200], ['cain:d6', 150],
+    ]);
+    const buffMap = new Map([['cain:b1', 50000], ['cain:b2', 40000]]);
+
+    const results = buildMultipleParties(
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0 },
+      chars, damageMap, buffMap, [],
+    );
+
+    expect(results).toHaveLength(2);
+    expect(results[0].isComplete).toBe(true);
+    expect(results[1].isComplete).toBe(true);
+
+    // 캐릭터 중복 없음 확인
+    const allUsedIds = new Set<string>();
+    for (const party of results) {
+      for (const d of party.dealers) {
+        expect(allUsedIds.has(characterKey(d))).toBe(false);
+        allUsedIds.add(characterKey(d));
+      }
+      if (party.primaryBuffer) {
+        expect(allUsedIds.has(characterKey(party.primaryBuffer))).toBe(false);
+        allUsedIds.add(characterKey(party.primaryBuffer));
+      }
+    }
+  });
+
+  it('버퍼가 1명이면 1파티만 구성하고 불완전 파티를 표시한다', () => {
+    const chars = [
+      makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
+      makeCharacter({ characterId: 'd2', jobGrowName: '런처(남)' }),
+      makeCharacter({ characterId: 'd3', jobGrowName: '배틀메이지' }),
+      makeCharacter({ characterId: 'd4', jobGrowName: '엘레멘탈마스터' }),
+      makeCharacter({ characterId: 'd5', jobGrowName: '스트라이커' }),
+      makeCharacter({ characterId: 'd6', jobGrowName: '넨마스터' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+    ];
+    const damageMap = new Map([
+      ['cain:d1', 500], ['cain:d2', 400], ['cain:d3', 300],
+      ['cain:d4', 250], ['cain:d5', 200], ['cain:d6', 150],
+    ]);
+    const buffMap = new Map([['cain:b1', 50000]]);
+
+    const results = buildMultipleParties(
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0 },
+      chars, damageMap, buffMap, [],
+    );
+
+    expect(results).toHaveLength(2);
+    expect(results[0].isComplete).toBe(true);
+    expect(results[1].isComplete).toBe(false);
+  });
+
+  it('딜러도 버퍼도 없으면 빈 배열을 반환한다', () => {
+    const results = buildMultipleParties(
+      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0 },
+      [], new Map(), new Map(), [],
+    );
+
+    expect(results).toHaveLength(0);
   });
 });
 

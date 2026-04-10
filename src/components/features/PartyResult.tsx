@@ -15,11 +15,16 @@ import { useCharacterStore } from '@/stores/character-store';
 
 interface PartyResultProps {
   composition: PartyComposition;
+  partyIndex?: number;
 }
 
-export function PartyResult({ composition }: PartyResultProps) {
+export function PartyResult({ composition, partyIndex }: PartyResultProps) {
   const meta = RAID_TYPE_META[composition.raidType];
   const { markCleared } = useCharacterStore();
+
+  const title = partyIndex !== undefined
+    ? `파티 ${partyIndex + 1} - ${meta.label}`
+    : `${meta.label} 구성 결과`;
 
   return (
     <div className="space-y-4">
@@ -27,7 +32,7 @@ export function PartyResult({ composition }: PartyResultProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>{meta.label} 구성 결과</CardTitle>
+              <CardTitle>{title}</CardTitle>
               <CardDescription>{meta.description}</CardDescription>
             </div>
             <Badge variant={composition.isComplete ? 'default' : 'destructive'}>

@@ -36,7 +36,7 @@ export function HomePage() {
 
   const characters = useCharacterStore((state) => state.characters);
   const adventureName = useCharacterStore((state) => state.adventureName);
-  const { partyResult, buildParty } = usePartyComposition();
+  const { partyResults, buildParty } = usePartyComposition();
 
   const meta = RAID_TYPE_META[raidType];
   const needSecondaryBuffer = meta.secondaryBufferSlots > 0;
@@ -166,9 +166,15 @@ export function HomePage() {
               </Card>
 
               {/* 결과 영역 */}
-              <div className="lg:col-span-2">
-                {partyResult ? (
-                  <PartyResult composition={partyResult} />
+              <div className="lg:col-span-2 space-y-6">
+                {partyResults.length > 0 ? (
+                  partyResults.map((result, index) => (
+                    <PartyResult
+                      key={index}
+                      composition={result}
+                      partyIndex={partyResults.length > 1 ? index : undefined}
+                    />
+                  ))
                 ) : (
                   <Card>
                     <CardContent className="flex items-center justify-center h-64 text-muted-foreground">

@@ -1,18 +1,18 @@
 import { useState } from 'react';
 
 import { useCharacterStore } from '@/stores/character-store';
-import { buildPartyComposition } from '@/domain/party-builder';
+import { buildMultipleParties } from '@/domain/party-builder';
 
 import type { BufferExchangeInput, PartyComposition } from '@/domain/party';
 
 interface UsePartyCompositionReturn {
-  partyResult: PartyComposition | null;
+  partyResults: PartyComposition[];
   buildParty: (input: BufferExchangeInput) => void;
-  clearResult: () => void;
+  clearResults: () => void;
 }
 
 export function usePartyComposition(): UsePartyCompositionReturn {
-  const [partyResult, setPartyResult] = useState<PartyComposition | null>(null);
+  const [partyResults, setPartyResults] = useState<PartyComposition[]>([]);
 
   const characters = useCharacterStore((state) => state.characters);
   const damageMap = useCharacterStore((state) => state.damageMap);
@@ -22,23 +22,23 @@ export function usePartyComposition(): UsePartyCompositionReturn {
   );
 
   function buildParty(input: BufferExchangeInput): void {
-    const result = buildPartyComposition(
+    const results = buildMultipleParties(
       input,
       characters,
       damageMap,
       buffPowerMap,
       weeklyClearRecords,
     );
-    setPartyResult(result);
+    setPartyResults(results);
   }
 
-  function clearResult(): void {
-    setPartyResult(null);
+  function clearResults(): void {
+    setPartyResults([]);
   }
 
   return {
-    partyResult,
+    partyResults,
     buildParty,
-    clearResult,
+    clearResults,
   };
 }

@@ -13,6 +13,9 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,7 +26,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - run: npx tsc -b
+      - run: npx vite build
         env:
           GITHUB_ACTIONS: true
       - uses: actions/upload-pages-artifact@v3

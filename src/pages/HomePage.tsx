@@ -11,13 +11,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useCharacterStore } from '@/stores/character-store';
 import { usePartyComposition } from '@/hooks/usePartyComposition';
 import { usePresets } from '@/hooks/usePresets';
@@ -130,53 +123,6 @@ export function HomePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* 프리셋 */}
-                  <div className="space-y-2">
-                    <Label>프리셋</Label>
-                    <div className="flex gap-2">
-                      <Select onValueChange={(id) => {
-                        const preset = presets.find((p) => p.id === id);
-                        if (preset) handleLoadPreset(preset);
-                      }}>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="프리셋 선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {presets.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="프리셋 이름"
-                        value={presetName}
-                        onChange={(e) => setPresetName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
-                      />
-                      <Button variant="outline" size="sm" onClick={handleSavePreset} disabled={!presetName.trim()} className="shrink-0">
-                        저장
-                      </Button>
-                    </div>
-                    {presets.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {presets.map((p) => (
-                          <span key={p.id} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs">
-                            <button type="button" className="hover:text-primary" onClick={() => handleLoadPreset(p)}>
-                              {p.name}
-                            </button>
-                            <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => deletePreset(p.id)}>
-                              x
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="totalMembers">파티 참가 인원</Label>
                     <Input
@@ -315,8 +261,58 @@ export function HomePage() {
                       먼저 &quot;캐릭터 관리&quot; 탭에서 캐릭터를 등록하세요
                     </p>
                   )}
+                  {/* 프리셋 저장 */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="프리셋 이름을 입력하여 저장"
+                      value={presetName}
+                      onChange={(e) => setPresetName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
+                    />
+                    <Button variant="outline" size="sm" onClick={handleSavePreset} disabled={!presetName.trim()} className="shrink-0">
+                      저장
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
+
+              {/* 프리셋 목록 */}
+              {presets.length > 0 && (
+                <div className="lg:col-span-1 space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">저장된 프리셋</p>
+                  <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                    {presets.map((p) => (
+                      <div
+                        key={p.id}
+                        className="rounded-lg border border-border bg-card p-3 cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
+                        onClick={() => handleLoadPreset(p)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{p.name}</p>
+                          <button
+                            type="button"
+                            className="text-xs text-muted-foreground hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); deletePreset(p.id); }}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-xs">인원 {p.totalMembers}</span>
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-xs">딜러 {p.dealerSlots}</span>
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-xs">버퍼 {p.bufferSlots}</span>
+                          {p.secondaryBufferSlots > 0 && (
+                            <span className="rounded bg-muted px-1.5 py-0.5 text-xs">업둥버퍼 {p.secondaryBufferSlots}</span>
+                          )}
+                          {p.useTotalDamage && (
+                            <span className="rounded bg-muted px-1.5 py-0.5 text-xs">딜합</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* 결과 영역 */}
               <div className="lg:col-span-2 space-y-6">

@@ -24,7 +24,6 @@ import { usePartyComposition } from '@/hooks/usePartyComposition';
 import { PartyResult } from '@/components/features/PartyResult';
 import { CharacterManager } from '@/components/features/CharacterManager';
 import { AdventureSetupDialog } from '@/components/features/AdventureSetupDialog';
-import { ApiSettings } from '@/components/features/ApiSettings';
 
 import type { RaidType } from '@/config/constants';
 import type { BufferExchangeInput } from '@/domain/party';
@@ -74,7 +73,6 @@ export function HomePage() {
           <TabsList className="mb-6">
             <TabsTrigger value="compose">파티 구성</TabsTrigger>
             <TabsTrigger value="characters">캐릭터 관리</TabsTrigger>
-            <TabsTrigger value="settings">설정</TabsTrigger>
           </TabsList>
 
           <TabsContent value="compose">
@@ -187,9 +185,6 @@ export function HomePage() {
             <CharacterManager />
           </TabsContent>
 
-          <TabsContent value="settings">
-            <ApiSettings />
-          </TabsContent>
         </Tabs>
       </main>
     </div>

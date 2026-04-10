@@ -15,7 +15,7 @@ export type DnfServerId = (typeof DNF_SERVERS)[number]['id'];
 /** API 기본 설정 */
 export const API_CONFIG = {
   /** Cloudflare Workers 프록시 URL (배포 시 실제 URL로 교체) */
-  PROXY_BASE_URL: import.meta.env.VITE_API_PROXY_URL ?? 'http://localhost:8787',
+  PROXY_BASE_URL: import.meta.env.VITE_API_PROXY_URL ?? 'https://dnf-gyo-api-proxy.dungyo.workers.dev',
   /** 네오플 API 직접 호출용 (개발 전용) */
   NEOPLE_BASE_URL: 'https://api.neople.co.kr',
   /** 캐릭터 이미지 URL */

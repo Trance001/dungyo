@@ -1,0 +1,10 @@
+name = "dnf-gyo-api-proxy"
+main = "index.ts"
+compatibility_date = "2024-12-01"
+
+# 환경변수는 Cloudflare 대시보드 또는 wrangler secret 으로 설정
+# wrangler secret put NEOPLE_API_KEY
+# wrangler secret put ALLOWED_ORIGIN
+
+[vars]
+# ALLOWED_ORIGIN = "https://username.github.io"

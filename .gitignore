@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 worker/.wrangler/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+credentials.json

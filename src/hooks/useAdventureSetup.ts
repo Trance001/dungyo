@@ -1,75 +1,65 @@
 import { useState } from 'react';
 
 import { useCharacterStore } from '@/stores/character-store';
-import { getCharactersByNames } from '@/services/neople-api';
-import { toCharacterEntity } from '@/domain/character';
+import { parseDundamText } from '@/domain/dundam-parser';
+import { isBufferJob } from '@/domain/character';
 
+import type { Character } from '@/domain/character';
 import type { DnfServerId } from '@/config/constants';
 
 interface UseAdventureSetupReturn {
-  isLoading: boolean;
-  progress: string | null;
   error: string | null;
-  setupAdventure: (serverId: string, characterNamesInput: string) => Promise<void>;
+  setupFromDundam: (text: string) => void;
 }
 
 export function useAdventureSetup(): UseAdventureSetupReturn {
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const setAdventure = useCharacterStore((state) => state.setAdventure);
   const setCharacters = useCharacterStore((state) => state.setCharacters);
+  const setDamage = useCharacterStore((state) => state.setDamage);
+  const setBuffPower = useCharacterStore((state) => state.setBuffPower);
 
-  async function setupAdventure(serverId: string, characterNamesInput: string): Promise<void> {
-    const names = characterNamesInput
-      .split(/\s+/)
-      .map((n) => n.trim())
-      .filter((n) => n.length > 0);
-
-    if (names.length === 0) return;
-
-    setIsLoading(true);
+  function setupFromDundam(text: string): void {
     setError(null);
-    setProgress(`0/${names.length} 캐릭터 조회 중...`);
 
-    const result = await getCharactersByNames(
-      serverId,
-      names,
-      (completed, total) => setProgress(`${completed}/${total} 캐릭터 조회 중...`),
-    );
+    const result = parseDundamText(text);
 
-    if (!result.ok) {
-      setError(result.error);
-      setIsLoading(false);
-      setProgress(null);
+    if (!result.adventureName || !result.serverId) {
+      setError('던담 데이터를 인식할 수 없습니다. 던담 모험단 페이지에서 Ctrl+A로 전체 선택 후 붙여넣어주세요.');
       return;
     }
 
-    if (result.data.length === 0) {
-      setError('캐릭터를 찾을 수 없습니다. 캐릭터명을 확인해주세요.');
-      setIsLoading(false);
-      setProgress(null);
+    if (result.characters.length === 0) {
+      setError('캐릭터 정보를 찾을 수 없습니다.');
       return;
     }
 
-    const adventureName = result.data[0].adventureName;
-    if (!adventureName) {
-      setError('모험단명을 확인할 수 없습니다.');
-      setIsLoading(false);
-      setProgress(null);
-      return;
-    }
+    const characters: Character[] = result.characters.map((c) => ({
+      serverId: c.serverId as DnfServerId,
+      characterId: c.characterName,
+      characterName: c.characterName,
+      level: 0,
+      jobId: '',
+      jobGrowId: '',
+      jobName: '',
+      jobGrowName: c.jobGrowName,
+      adventureName: c.adventureName,
+      fame: 0,
+    }));
 
-    const characters = result.data.map((info) =>
-      toCharacterEntity(info, serverId as DnfServerId),
-    );
-
-    setAdventure(serverId, adventureName);
+    setAdventure(result.serverId, result.adventureName);
     setCharacters(characters);
-    setIsLoading(false);
-    setProgress(null);
+
+    // 딜/버프 수치 자동 입력
+    for (const c of result.characters) {
+      if (isBufferJob(c.jobGrowName) && c.buffPower !== null) {
+        setBuffPower(c.serverId, c.characterName, c.buffPower);
+      } else if (c.damage !== null) {
+        setDamage(c.serverId, c.characterName, c.damage);
+      }
+    }
   }
 
-  return { isLoading, progress, error, setupAdventure };
+  return { error, setupFromDundam };
 }

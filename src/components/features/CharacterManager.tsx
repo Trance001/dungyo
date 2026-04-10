@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,20 +19,14 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useCharacterStore } from '@/stores/character-store';
-import { useCharacterSearch } from '@/hooks/useCharacterSearch';
-import { getCharacterImageUrl, getDundamAdventureUrl, getDundamCharacterUrl, isBufferJob } from '@/domain/character';
+import { getDundamAdventureUrl, getDundamCharacterUrl, isBufferJob } from '@/domain/character';
 import { characterKey } from '@/domain/party-builder';
 import { isAlreadyCleared } from '@/domain/weekly-clear';
+import { useAdventureSetup } from '@/hooks/useAdventureSetup';
 
 export function CharacterManager() {
-  const {
-    searchInput,
-    setSearchInput,
-    isSearching,
-    progress,
-    searchError,
-    handleSearch,
-  } = useCharacterSearch();
+  const [dundamText, setDundamText] = useState('');
+  const { error: dundamError, setupFromDundam } = useAdventureSetup();
 
   const {
     characters,
@@ -45,42 +41,38 @@ export function CharacterManager() {
     unmarkCleared,
   } = useCharacterStore();
 
+  function handleDundamUpdate() {
+    if (!dundamText.trim()) return;
+    setupFromDundam(dundamText);
+    setDundamText('');
+  }
+
   return (
     <div className="space-y-6">
-      {/* 캐릭터 검색 */}
+      {/* 던담 데이터 갱신 */}
       <Card>
         <CardHeader>
-          <CardTitle>캐릭터 검색</CardTitle>
+          <CardTitle>던담 데이터 갱신</CardTitle>
           <CardDescription>
-            캐릭터명을 입력하여 등록합니다 (띄어쓰기 또는 줄바꿈으로 여러 캐릭터 동시 등록)
+            던담 모험단 페이지에서 Ctrl+A → Ctrl+C 후 붙여넣으면 캐릭터와 수치가 갱신됩니다
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <textarea
-              placeholder="캐릭터명 입력 (여러 개는 띄어쓰기로 구분)"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSearch();
-                }
-              }}
-              rows={2}
-              className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+              placeholder="던담 모험단 페이지 내용을 붙여넣으세요"
+              value={dundamText}
+              onChange={(e) => setDundamText(e.target.value)}
+              rows={3}
+              className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
             />
-            <Button onClick={handleSearch} disabled={isSearching} className="self-end">
-              {isSearching ? '검색 중...' : '검색'}
+            <Button onClick={handleDundamUpdate} disabled={!dundamText.trim()} className="self-end">
+              갱신
             </Button>
           </div>
 
-          {searchError && (
-            <p className="text-sm text-destructive">{searchError}</p>
-          )}
-
-          {progress && (
-            <p className="text-sm text-muted-foreground">{progress}</p>
+          {dundamError && (
+            <p className="text-sm text-destructive">{dundamError}</p>
           )}
         </CardContent>
       </Card>
@@ -111,7 +103,7 @@ export function CharacterManager() {
         <CardContent>
           {characters.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              등록된 캐릭터가 없습니다. 위에서 검색하여 추가하세요.
+              등록된 캐릭터가 없습니다. 던담 데이터를 붙여넣어 등록하세요.
             </p>
           ) : (
             <Table>
@@ -139,15 +131,6 @@ export function CharacterManager() {
                     <TableRow key={key}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <img
-                            src={getCharacterImageUrl(
-                              c.serverId,
-                              c.characterId,
-                            )}
-                            alt={c.characterName}
-                            className="w-8 h-8 rounded"
-                            loading="lazy"
-                          />
                           <div>
                             <div className="flex items-center gap-1">
                               <p className="text-sm font-medium">
@@ -163,9 +146,6 @@ export function CharacterManager() {
                                 </Button>
                               </a>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              Lv.{c.level}
-                            </p>
                           </div>
                         </div>
                       </TableCell>

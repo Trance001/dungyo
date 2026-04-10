@@ -323,46 +323,46 @@ export function HomePage() {
                       </Button>
                     </div>
                   )}
+
+                  {/* 프리셋 목록 */}
+                  {presets.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">저장된 프리셋</p>
+                      <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                        {presets.map((p) => (
+                          <div
+                            key={p.id}
+                            className="rounded-lg border border-border bg-card p-3 cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
+                            onClick={() => handleLoadPreset(p)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium">{p.name}</p>
+                              <button
+                                type="button"
+                                className="text-xs text-muted-foreground hover:text-destructive"
+                                onClick={(e) => { e.stopPropagation(); deletePreset(p.id); }}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              <span className="rounded bg-muted px-1.5 py-0.5 text-xs">인원 {p.totalMembers}</span>
+                              <span className="rounded bg-muted px-1.5 py-0.5 text-xs">딜러 {p.dealerSlots}</span>
+                              <span className="rounded bg-muted px-1.5 py-0.5 text-xs">버퍼 {p.bufferSlots}</span>
+                              {p.secondaryBufferSlots > 0 && (
+                                <span className="rounded bg-muted px-1.5 py-0.5 text-xs">업둥버퍼 {p.secondaryBufferSlots}</span>
+                              )}
+                              {p.useTotalDamage && (
+                                <span className="rounded bg-muted px-1.5 py-0.5 text-xs">딜합</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-
-              {/* 프리셋 목록 */}
-              {presets.length > 0 && (
-                <div className="lg:col-span-1 space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">저장된 프리셋</p>
-                  <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-                    {presets.map((p) => (
-                      <div
-                        key={p.id}
-                        className="rounded-lg border border-border bg-card p-3 cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
-                        onClick={() => handleLoadPreset(p)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium">{p.name}</p>
-                          <button
-                            type="button"
-                            className="text-xs text-muted-foreground hover:text-destructive"
-                            onClick={(e) => { e.stopPropagation(); deletePreset(p.id); }}
-                          >
-                            삭제
-                          </button>
-                        </div>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          <span className="rounded bg-muted px-1.5 py-0.5 text-xs">인원 {p.totalMembers}</span>
-                          <span className="rounded bg-muted px-1.5 py-0.5 text-xs">딜러 {p.dealerSlots}</span>
-                          <span className="rounded bg-muted px-1.5 py-0.5 text-xs">버퍼 {p.bufferSlots}</span>
-                          {p.secondaryBufferSlots > 0 && (
-                            <span className="rounded bg-muted px-1.5 py-0.5 text-xs">업둥버퍼 {p.secondaryBufferSlots}</span>
-                          )}
-                          {p.useTotalDamage && (
-                            <span className="rounded bg-muted px-1.5 py-0.5 text-xs">딜합</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* 결과 영역 */}
               <div className="lg:col-span-2 space-y-6">

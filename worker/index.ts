@@ -96,7 +96,7 @@ export default {
 };
 
 function corsResponse(env: Env, response: Response): Response {
-  const origin = env.ALLOWED_ORIGIN ?? '*';
+  const origin = env.ALLOWED_ORIGIN?.replace(/\/+$/, '') ?? '*';
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');

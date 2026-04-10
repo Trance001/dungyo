@@ -27,7 +27,7 @@ export function PartyResult({ composition, partyIndex }: PartyResultProps) {
     : `${meta.label} 구성 결과`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

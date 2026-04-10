@@ -1,15 +1,22 @@
-import type { RaidType } from '@/config/constants';
 import type {
   BufferCharacter,
   DealerCharacter,
 } from './character';
 
+/** 파티 슬롯 구성 */
+export interface SlotConfig {
+  dealerSlots: number;
+  bufferSlots: number;
+  secondaryBufferSlots: number;
+  carrySlots: number;
+}
+
 /** 파티 구성 결과 */
 export interface PartyComposition {
-  raidType: RaidType;
+  slotConfig: SlotConfig;
   dealers: DealerCharacter[];
-  primaryBuffer: BufferCharacter | null;
-  secondaryBuffer: BufferCharacter | null;
+  primaryBuffers: BufferCharacter[];
+  secondaryBuffers: BufferCharacter[];
   /** 업둥 슬롯 수 (머릿수만 채움) */
   carryCount: number;
   /** 구성 완성 여부 */
@@ -25,8 +32,7 @@ export interface MissingSlot {
 }
 
 /** 버퍼교환 입력 조건 */
-export interface BufferExchangeInput {
-  raidType: RaidType;
+export interface BufferExchangeInput extends SlotConfig {
   minDealerDamage: number;
   minPrimaryBuffPower: number;
   minSecondaryBuffPower: number;

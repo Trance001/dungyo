@@ -82,7 +82,15 @@ export function parseDundamText(text: string): DundamParseResult {
             characterName = searchLine.slice(0, -adventureName.length);
           }
 
-          // 딜러 딜 수치: "랭킹XXXX 억 XXXX 만"
+          // 딜러 딜 수치: "랭킹X 조 XXXX 억" 또는 "랭킹XXXX 억 XXXX 만"
+          const damageJoMatch = searchLine.match(/랭킹\s*([\d,]+)\s*조\s*([\d,]+)\s*억/);
+          if (damageJoMatch) {
+            const jo = parseInt(damageJoMatch[1].replace(/,/g, ''), 10);
+            const eok = parseInt(damageJoMatch[2].replace(/,/g, ''), 10);
+            damage = jo * 10000 + eok;
+            break;
+          }
+
           const damageMatch = searchLine.match(/랭킹\s*([\d,]+)\s*억\s*([\d,]+)\s*만/);
           if (damageMatch) {
             damage = parseInt(damageMatch[1].replace(/,/g, ''), 10);

@@ -68,7 +68,7 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
       const apiInfo = apiMap.get(c.characterName);
       return {
         serverId,
-        characterId: apiInfo?.characterId ?? '',
+        characterId: apiInfo?.characterId ?? `_local_${c.characterName}`,
         characterName: c.characterName,
         level: apiInfo?.level ?? 0,
         jobId: apiInfo?.jobId ?? '',

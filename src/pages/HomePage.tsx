@@ -4,13 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Card,
   CardContent,
   CardDescription,
@@ -18,18 +11,19 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RAID_TYPE_META, RAID_TYPES } from '@/config/constants';
 import { useCharacterStore } from '@/stores/character-store';
 import { usePartyComposition } from '@/hooks/usePartyComposition';
 import { PartyResult } from '@/components/features/PartyResult';
 import { CharacterManager } from '@/components/features/CharacterManager';
 import { AdventureSetupDialog } from '@/components/features/AdventureSetupDialog';
 
-import type { RaidType } from '@/config/constants';
 import type { BufferExchangeInput } from '@/domain/party';
 
 export function HomePage() {
-  const [raidType, setRaidType] = useState<RaidType>(RAID_TYPES.PARTY_4_NORMAL);
+  const [totalMembers, setTotalMembers] = useState('4');
+  const [dealerSlots, setDealerSlots] = useState('3');
+  const [bufferSlots, setBufferSlots] = useState('1');
+  const [secondaryBufferSlots, setSecondaryBufferSlots] = useState('0');
   const [minDamage, setMinDamage] = useState('');
   const [minPrimaryBuff, setMinPrimaryBuff] = useState('');
   const [minSecondaryBuff, setMinSecondaryBuff] = useState('');
@@ -40,12 +34,18 @@ export function HomePage() {
   const adventureName = useCharacterStore((state) => state.adventureName);
   const { partyResults, buildParty } = usePartyComposition();
 
-  const meta = RAID_TYPE_META[raidType];
-  const needSecondaryBuffer = meta.secondaryBufferSlots > 0;
+  const needSecondaryBuffer = Number(secondaryBufferSlots) > 0;
+  const totalSlotSum = (Number(dealerSlots) || 0) + (Number(bufferSlots) || 0) + (Number(secondaryBufferSlots) || 0);
+  const totalMembersNum = Number(totalMembers) || 0;
+  const slotOverflow = totalSlotSum > totalMembersNum;
+  const computedCarrySlots = Math.max(0, totalMembersNum - totalSlotSum);
 
   function handleBuildParty() {
     const input: BufferExchangeInput = {
-      raidType,
+      dealerSlots: Number(dealerSlots) || 0,
+      bufferSlots: Number(bufferSlots) || 0,
+      secondaryBufferSlots: Number(secondaryBufferSlots) || 0,
+      carrySlots: computedCarrySlots,
       minDealerDamage: Number(minDamage) || 0,
       minPrimaryBuffPower: Number(minPrimaryBuff) || 0,
       minSecondaryBuffPower: Number(minSecondaryBuff) || 0,
@@ -86,31 +86,59 @@ export function HomePage() {
                 <CardHeader>
                   <CardTitle>버퍼교환 조건</CardTitle>
                   <CardDescription>
-                    레이드 유형과 최소 요구 수치를 입력하세요
+                    구성 인원과 최소 요구 수치를 입력하세요
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="raidType">레이드 유형</Label>
-                    <Select
-                      value={raidType}
-                      onValueChange={(v) => v && setRaidType(v as RaidType)}
-                    >
-                      <SelectTrigger id="raidType">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(RAID_TYPE_META).map(([key, m]) => (
-                          <SelectItem key={key} value={key}>
-                            {m.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      {meta.description}
-                    </p>
+                    <Label htmlFor="totalMembers">파티 참가 인원</Label>
+                    <Input
+                      id="totalMembers"
+                      type="number"
+                      min="1"
+                      value={totalMembers}
+                      onChange={(e) => setTotalMembers(e.target.value)}
+                    />
                   </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="dealerSlots">딜러 수</Label>
+                      <Input
+                        id="dealerSlots"
+                        type="number"
+                        min="0"
+                        value={dealerSlots}
+                        onChange={(e) => setDealerSlots(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bufferSlots">버퍼 수</Label>
+                      <Input
+                        id="bufferSlots"
+                        type="number"
+                        min="0"
+                        value={bufferSlots}
+                        onChange={(e) => setBufferSlots(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="secondaryBufferSlots">업둥버퍼 수</Label>
+                      <Input
+                        id="secondaryBufferSlots"
+                        type="number"
+                        min="0"
+                        value={secondaryBufferSlots}
+                        onChange={(e) => setSecondaryBufferSlots(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {computedCarrySlots > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      업둥 {computedCarrySlots}명 자동 배정
+                    </p>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="minDamage">
@@ -169,7 +197,7 @@ export function HomePage() {
                   {needSecondaryBuffer && (
                     <div className="space-y-2">
                       <Label htmlFor="minSecondaryBuff">
-                        부버퍼 최소 버프력 (만)
+                        업둥버퍼 최소 버프력 (만)
                       </Label>
                       <Input
                         id="minSecondaryBuff"
@@ -184,12 +212,18 @@ export function HomePage() {
                   <Button
                     className="w-full"
                     onClick={handleBuildParty}
-                    disabled={characters.length === 0}
+                    disabled={characters.length === 0 || slotOverflow}
                   >
                     최적 파티 구성
                   </Button>
 
-                  {characters.length === 0 && (
+                  {slotOverflow && (
+                    <p className="text-xs text-destructive text-center">
+                      딜러 + 버퍼 + 업둥버퍼 수({totalSlotSum}명)가 파티 참가 인원({totalMembersNum}명)을 초과합니다
+                    </p>
+                  )}
+
+                  {!slotOverflow && characters.length === 0 && (
                     <p className="text-xs text-muted-foreground text-center">
                       먼저 &quot;캐릭터 관리&quot; 탭에서 캐릭터를 등록하세요
                     </p>
@@ -200,13 +234,20 @@ export function HomePage() {
               {/* 결과 영역 */}
               <div className="lg:col-span-2 space-y-6">
                 {partyResults.length > 0 ? (
-                  partyResults.map((result, index) => (
-                    <PartyResult
-                      key={index}
-                      composition={result}
-                      partyIndex={partyResults.length > 1 ? index : undefined}
-                    />
-                  ))
+                  <>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {partyResults.filter((r) => r.isComplete).length}개 파티 구성 완료
+                      {partyResults.some((r) => !r.isComplete) &&
+                        ` / ${partyResults.filter((r) => !r.isComplete).length}개 인원 부족`}
+                    </p>
+                    {partyResults.map((result, index) => (
+                      <PartyResult
+                        key={index}
+                        composition={result}
+                        partyIndex={partyResults.length > 1 ? index : undefined}
+                      />
+                    ))}
+                  </>
                 ) : (
                   <Card>
                     <CardContent className="flex items-center justify-center h-64 text-muted-foreground">

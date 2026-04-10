@@ -1,4 +1,3 @@
-import { RAID_TYPE_META } from '@/config/constants';
 import { isBufferJob } from './character';
 import type {
   BufferCharacter,
@@ -129,8 +128,6 @@ export function buildPartyComposition(
   buffPowerMap: Map<string, number>,
   clearedRecords: WeeklyClearRecord[],
 ): PartyComposition {
-  const meta = RAID_TYPE_META[input.raidType];
-
   // 1. 딜러 선별
   const dealerCandidates = filterDealers(
     characters,
@@ -139,10 +136,10 @@ export function buildPartyComposition(
     clearedRecords,
   );
   const selectedDealers = input.useTotalDamage
-    ? selectDealersByTotalDamage(dealerCandidates, meta.dealerSlots, input.minTotalDamage)
-    : dealerCandidates.slice(0, meta.dealerSlots);
+    ? selectDealersByTotalDamage(dealerCandidates, input.dealerSlots, input.minTotalDamage)
+    : dealerCandidates.slice(0, input.dealerSlots);
 
-  // 2. 주 버퍼 선별 (버프력 높은 순)
+  // 2. 버퍼 선별 (버프력 높은 순)
   const usedIds = new Set(selectedDealers.map((d) => characterKey(d)));
   const primaryBufferCandidates = filterBuffers(
     characters.filter((c) => !usedIds.has(characterKey(c))),
@@ -150,28 +147,28 @@ export function buildPartyComposition(
     input.minPrimaryBuffPower,
     clearedRecords,
   );
-  const primaryBuffer = primaryBufferCandidates[0] ?? null;
-  if (primaryBuffer) usedIds.add(characterKey(primaryBuffer));
+  const primaryBuffers = primaryBufferCandidates.slice(0, input.bufferSlots);
+  for (const b of primaryBuffers) usedIds.add(characterKey(b));
 
-  // 3. 부 버퍼 선별 (나벨 등)
-  let secondaryBuffer: BufferCharacter | null = null;
-  if (meta.secondaryBufferSlots > 0) {
+  // 3. 업둥버퍼 선별
+  let secondaryBuffers: BufferCharacter[] = [];
+  if (input.secondaryBufferSlots > 0) {
     const secondaryCandidates = filterBuffers(
       characters.filter((c) => !usedIds.has(characterKey(c))),
       buffPowerMap,
       input.minSecondaryBuffPower,
       clearedRecords,
     );
-    secondaryBuffer = secondaryCandidates[0] ?? null;
-    if (secondaryBuffer) usedIds.add(characterKey(secondaryBuffer));
+    secondaryBuffers = secondaryCandidates.slice(0, input.secondaryBufferSlots);
+    for (const b of secondaryBuffers) usedIds.add(characterKey(b));
   }
 
   // 4. 부족한 슬롯 계산 (업둥은 머릿수만 채우므로 제외)
   const missingSlots: MissingSlot[] = [];
-  if (selectedDealers.length < meta.dealerSlots) {
+  if (selectedDealers.length < input.dealerSlots) {
     missingSlots.push({
       role: 'dealer',
-      count: meta.dealerSlots - selectedDealers.length,
+      count: input.dealerSlots - selectedDealers.length,
       requirement: input.useTotalDamage
         ? `딜 ${input.minDealerDamage.toLocaleString()}억 이상, 딜합 ${input.minTotalDamage.toLocaleString()}억 이상`
         : `딜 ${input.minDealerDamage.toLocaleString()}억 이상`,
@@ -186,27 +183,34 @@ export function buildPartyComposition(
       });
     }
   }
-  if (meta.primaryBufferSlots > 0 && !primaryBuffer) {
+  if (input.bufferSlots > 0 && primaryBuffers.length < input.bufferSlots) {
     missingSlots.push({
       role: 'buffer',
-      count: 1,
+      count: input.bufferSlots - primaryBuffers.length,
       requirement: `버프력 ${input.minPrimaryBuffPower.toLocaleString()}만 이상`,
     });
   }
-  if (meta.secondaryBufferSlots > 0 && !secondaryBuffer) {
+  if (input.secondaryBufferSlots > 0 && secondaryBuffers.length < input.secondaryBufferSlots) {
     missingSlots.push({
       role: 'secondaryBuffer',
-      count: 1,
+      count: input.secondaryBufferSlots - secondaryBuffers.length,
       requirement: `버프력 ${input.minSecondaryBuffPower.toLocaleString()}만 이상`,
     });
   }
 
+  const slotConfig = {
+    dealerSlots: input.dealerSlots,
+    bufferSlots: input.bufferSlots,
+    secondaryBufferSlots: input.secondaryBufferSlots,
+    carrySlots: input.carrySlots,
+  };
+
   return {
-    raidType: input.raidType,
+    slotConfig,
     dealers: selectedDealers,
-    primaryBuffer,
-    secondaryBuffer,
-    carryCount: meta.carrySlots,
+    primaryBuffers,
+    secondaryBuffers,
+    carryCount: input.carrySlots,
     isComplete: missingSlots.length === 0,
     missingSlots,
   };
@@ -237,7 +241,7 @@ export function buildMultipleParties(
     );
 
     // 딜러도 버퍼도 없으면 더 이상 파티 구성 불가
-    if (result.dealers.length === 0 && !result.primaryBuffer) break;
+    if (result.dealers.length === 0 && result.primaryBuffers.length === 0) break;
 
     parties.push(result);
 
@@ -247,8 +251,8 @@ export function buildMultipleParties(
     // 선발된 딜러/버퍼를 남은 목록에서 제거 (업둥은 등록 캐릭터 사용 안 함)
     const usedIds = new Set<string>();
     for (const d of result.dealers) usedIds.add(characterKey(d));
-    if (result.primaryBuffer) usedIds.add(characterKey(result.primaryBuffer));
-    if (result.secondaryBuffer) usedIds.add(characterKey(result.secondaryBuffer));
+    for (const b of result.primaryBuffers) usedIds.add(characterKey(b));
+    for (const b of result.secondaryBuffers) usedIds.add(characterKey(b));
 
     remainingCharacters = remainingCharacters.filter(
       (c) => !usedIds.has(characterKey(c)),

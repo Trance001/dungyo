@@ -7,8 +7,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RAID_TYPE_META } from '@/config/constants';
-import type { MissingSlot, PartyComposition } from '@/domain/party';
+import type { MissingSlot, PartyComposition, SlotConfig } from '@/domain/party';
 import type { RoledCharacter } from '@/domain/character';
 import { getCharacterImageUrl, hasValidCharacterId } from '@/domain/character';
 import { isAlreadyCleared } from '@/domain/weekly-clear';
@@ -19,24 +18,33 @@ interface PartyResultProps {
   partyIndex?: number;
 }
 
+function buildCompositionDescription(config: SlotConfig): string {
+  const parts: string[] = [];
+  if (config.dealerSlots > 0) parts.push(`딜러 ${config.dealerSlots}`);
+  if (config.bufferSlots > 0) parts.push(`버퍼 ${config.bufferSlots}`);
+  if (config.secondaryBufferSlots > 0) parts.push(`업둥버퍼 ${config.secondaryBufferSlots}`);
+  if (config.carrySlots > 0) parts.push(`업둥 ${config.carrySlots}`);
+  return parts.join(' + ');
+}
+
 export function PartyResult({ composition, partyIndex }: PartyResultProps) {
-  const meta = RAID_TYPE_META[composition.raidType];
+  const description = buildCompositionDescription(composition.slotConfig);
   const markCleared = useCharacterStore((state) => state.markCleared);
   const unmarkCleared = useCharacterStore((state) => state.unmarkCleared);
   const weeklyClearRecords = useCharacterStore((state) => state.weeklyClearRecords);
 
   const title = partyIndex !== undefined
-    ? `파티 ${partyIndex + 1} - ${meta.label}`
-    : `${meta.label} 구성 결과`;
+    ? `파티 ${partyIndex + 1}`
+    : '구성 결과';
 
   return (
-    <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+    <div className={`space-y-4 rounded-lg border p-4 ${composition.isComplete ? 'border-border bg-muted/30' : 'border-red-400/50 bg-red-950/20'}`}>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>{title}</CardTitle>
-              <CardDescription>{meta.description}</CardDescription>
+              <CardDescription>{description}</CardDescription>
             </div>
             <Badge variant={composition.isComplete ? 'default' : 'destructive'}>
               {composition.isComplete ? '구성 완료' : '인원 부족'}
@@ -50,7 +58,7 @@ export function PartyResult({ composition, partyIndex }: PartyResultProps) {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              딜러 ({composition.dealers.length}/{meta.dealerSlots})
+              딜러 ({composition.dealers.length}/{composition.slotConfig.dealerSlots})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -76,54 +84,64 @@ export function PartyResult({ composition, partyIndex }: PartyResultProps) {
         </Card>
       )}
 
-      {/* 주 버퍼 */}
-      {composition.primaryBuffer && (
+      {/* 버퍼 */}
+      {composition.primaryBuffers.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">주 버퍼</CardTitle>
+            <CardTitle className="text-base">
+              버퍼 ({composition.primaryBuffers.length}/{composition.slotConfig.bufferSlots})
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {(() => {
-              const cleared = isAlreadyCleared(weeklyClearRecords, composition.primaryBuffer!.characterId, composition.primaryBuffer!.serverId);
-              return (
-                <CharacterSlotCard
-                  character={composition.primaryBuffer!}
-                  stat={`버프력: ${composition.primaryBuffer!.buffPower.toLocaleString()}만`}
-                  roleColor="text-blue-500"
-                  cleared={cleared}
-                  onToggleCleared={() => cleared
-                    ? unmarkCleared(composition.primaryBuffer!.serverId, composition.primaryBuffer!.characterId)
-                    : markCleared(composition.primaryBuffer!)
-                  }
-                />
-              );
-            })()}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {composition.primaryBuffers.map((buffer) => {
+                const cleared = isAlreadyCleared(weeklyClearRecords, buffer.characterId, buffer.serverId);
+                return (
+                  <CharacterSlotCard
+                    key={`${buffer.serverId}:${buffer.characterId}`}
+                    character={buffer}
+                    stat={`버프력: ${buffer.buffPower.toLocaleString()}만`}
+                    roleColor="text-blue-500"
+                    cleared={cleared}
+                    onToggleCleared={() => cleared
+                      ? unmarkCleared(buffer.serverId, buffer.characterId)
+                      : markCleared(buffer)
+                    }
+                  />
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* 부 버퍼 */}
-      {composition.secondaryBuffer && (
+      {/* 업둥버퍼 */}
+      {composition.secondaryBuffers.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">부 버퍼</CardTitle>
+            <CardTitle className="text-base">
+              업둥버퍼 ({composition.secondaryBuffers.length}/{composition.slotConfig.secondaryBufferSlots})
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {(() => {
-              const cleared = isAlreadyCleared(weeklyClearRecords, composition.secondaryBuffer!.characterId, composition.secondaryBuffer!.serverId);
-              return (
-                <CharacterSlotCard
-                  character={composition.secondaryBuffer!}
-                  stat={`버프력: ${composition.secondaryBuffer!.buffPower.toLocaleString()}만`}
-                  roleColor="text-cyan-500"
-                  cleared={cleared}
-                  onToggleCleared={() => cleared
-                    ? unmarkCleared(composition.secondaryBuffer!.serverId, composition.secondaryBuffer!.characterId)
-                    : markCleared(composition.secondaryBuffer!)
-                  }
-                />
-              );
-            })()}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {composition.secondaryBuffers.map((buffer) => {
+                const cleared = isAlreadyCleared(weeklyClearRecords, buffer.characterId, buffer.serverId);
+                return (
+                  <CharacterSlotCard
+                    key={`${buffer.serverId}:${buffer.characterId}`}
+                    character={buffer}
+                    stat={`버프력: ${buffer.buffPower.toLocaleString()}만`}
+                    roleColor="text-cyan-500"
+                    cleared={cleared}
+                    onToggleCleared={() => cleared
+                      ? unmarkCleared(buffer.serverId, buffer.characterId)
+                      : markCleared(buffer)
+                    }
+                  />
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -225,8 +243,8 @@ function slotRoleLabel(role: MissingSlot['role']): string {
     case 'dealer':
       return '딜러';
     case 'buffer':
-      return '주 버퍼';
+      return '버퍼';
     case 'secondaryBuffer':
-      return '부 버퍼';
+      return '업둥버퍼';
   }
 }

@@ -108,6 +108,17 @@ describe('parseDundamText', () => {
     expect(enchantress!.buffPower).toBe(4727157);
   });
 
+  it('조 단위 딜 수치를 파싱한다', () => {
+    const textWithJo = SAMPLE_TEXT.replace(
+      '랭킹5474 억 9714 만',
+      '랭킹3 조 5024 억',
+    );
+    const result = parseDundamText(textWithJo);
+    const ranger = result.characters.find((c) => c.characterName === '제로디스턴스');
+    expect(ranger).toBeDefined();
+    expect(ranger!.damage).toBe(35024); // 3 * 10000 + 5024
+  });
+
   it('빈 텍스트에서는 빈 결과를 반환한다', () => {
     const result = parseDundamText('');
     expect(result.adventureName).toBeNull();

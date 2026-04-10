@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { filterDealers, filterBuffers, characterKey, buildPartyComposition, buildMultipleParties } from '../party-builder';
 import { getCurrentWeekKey } from '../weekly-clear';
-import { RAID_TYPES } from '@/config/constants';
 
 import type { Character } from '../character';
 import type { WeeklyClearRecord } from '../weekly-clear';
@@ -108,7 +107,7 @@ describe('filterBuffers', () => {
 });
 
 describe('buildPartyComposition', () => {
-  it('4인 일반 버퍼교환: 딜러 3 + 버퍼 1', () => {
+  it('딜러 3 + 버퍼 1 구성', () => {
     const chars = [
       makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
       makeCharacter({ characterId: 'd2', jobGrowName: '런처(남)' }),
@@ -121,17 +120,17 @@ describe('buildPartyComposition', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, buffMap, [],
     );
 
     expect(result.dealers).toHaveLength(3);
-    expect(result.primaryBuffer).not.toBeNull();
+    expect(result.primaryBuffers).toHaveLength(1);
     expect(result.carryCount).toBe(0);
     expect(result.isComplete).toBe(true);
   });
 
-  it('4인 1업둥: 딜러 2 + 버퍼 1 + 업둥 1', () => {
+  it('딜러 2 + 버퍼 1 + 업둥 1 구성', () => {
     const chars = [
       makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
       makeCharacter({ characterId: 'd2', jobGrowName: '런처(남)' }),
@@ -142,12 +141,12 @@ describe('buildPartyComposition', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_1CARRY, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 2, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 1, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, buffMap, [],
     );
 
     expect(result.dealers).toHaveLength(2);
-    expect(result.primaryBuffer).not.toBeNull();
+    expect(result.primaryBuffers).toHaveLength(1);
     expect(result.carryCount).toBe(1);
     expect(result.isComplete).toBe(true);
   });
@@ -159,12 +158,55 @@ describe('buildPartyComposition', () => {
     const damageMap = new Map([['cain:d1', 500]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, new Map(), [],
     );
 
     expect(result.isComplete).toBe(false);
     expect(result.missingSlots.length).toBeGreaterThan(0);
+  });
+
+  it('복수 버퍼 선택이 가능하다', () => {
+    const chars = [
+      makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+      makeCharacter({ characterId: 'b2', jobGrowName: '眞 인챈트리스' }),
+      makeCharacter({ characterId: 'b3', jobGrowName: '眞 뮤즈' }),
+    ];
+    const damageMap = new Map([['cain:d1', 500]]);
+    const buffMap = new Map([['cain:b1', 50000], ['cain:b2', 40000], ['cain:b3', 30000]]);
+
+    const result = buildPartyComposition(
+      { dealerSlots: 1, bufferSlots: 2, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      chars, damageMap, buffMap, [],
+    );
+
+    expect(result.dealers).toHaveLength(1);
+    expect(result.primaryBuffers).toHaveLength(2);
+    expect(result.isComplete).toBe(true);
+  });
+
+  it('버퍼와 업둥버퍼를 동시에 선택한다', () => {
+    const chars = [
+      makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+      makeCharacter({ characterId: 'b2', jobGrowName: '眞 인챈트리스' }),
+      makeCharacter({ characterId: 'b3', jobGrowName: '眞 뮤즈' }),
+    ];
+    const damageMap = new Map([['cain:d1', 500]]);
+    const buffMap = new Map([['cain:b1', 50000], ['cain:b2', 40000], ['cain:b3', 30000]]);
+
+    const result = buildPartyComposition(
+      { dealerSlots: 1, bufferSlots: 1, secondaryBufferSlots: 1, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      chars, damageMap, buffMap, [],
+    );
+
+    expect(result.dealers).toHaveLength(1);
+    expect(result.primaryBuffers).toHaveLength(1);
+    expect(result.secondaryBuffers).toHaveLength(1);
+    expect(result.isComplete).toBe(true);
+    // 버퍼와 업둥버퍼는 중복되지 않아야 함
+    expect(result.primaryBuffers[0].characterId).not.toBe(result.secondaryBuffers[0].characterId);
   });
 });
 
@@ -187,7 +229,7 @@ describe('buildMultipleParties', () => {
     const buffMap = new Map([['cain:b1', 50000], ['cain:b2', 40000]]);
 
     const results = buildMultipleParties(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, buffMap, [],
     );
 
@@ -202,9 +244,9 @@ describe('buildMultipleParties', () => {
         expect(allUsedIds.has(characterKey(d))).toBe(false);
         allUsedIds.add(characterKey(d));
       }
-      if (party.primaryBuffer) {
-        expect(allUsedIds.has(characterKey(party.primaryBuffer))).toBe(false);
-        allUsedIds.add(characterKey(party.primaryBuffer));
+      for (const b of party.primaryBuffers) {
+        expect(allUsedIds.has(characterKey(b))).toBe(false);
+        allUsedIds.add(characterKey(b));
       }
     }
   });
@@ -226,7 +268,7 @@ describe('buildMultipleParties', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const results = buildMultipleParties(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, buffMap, [],
     );
 
@@ -237,7 +279,7 @@ describe('buildMultipleParties', () => {
 
   it('딜러도 버퍼도 없으면 빈 배열을 반환한다', () => {
     const results = buildMultipleParties(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       [], new Map(), new Map(), [],
     );
 
@@ -259,7 +301,7 @@ describe('딜합벞교', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400 },
       chars, damageMap, buffMap, [],
     );
 
@@ -282,7 +324,7 @@ describe('딜합벞교', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 500 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 500 },
       chars, damageMap, buffMap, [],
     );
 
@@ -302,7 +344,7 @@ describe('딜합벞교', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0 },
       chars, damageMap, buffMap, [],
     );
 
@@ -325,7 +367,7 @@ describe('딜합벞교', () => {
     const buffMap = new Map([['cain:b1', 50000]]);
 
     const result = buildPartyComposition(
-      { raidType: RAID_TYPES.PARTY_4_NORMAL, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400 },
+      { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400 },
       chars, damageMap, buffMap, [],
     );
 
@@ -335,4 +377,3 @@ describe('딜합벞교', () => {
     expect(selectedIds).not.toContain('d1'); // d1(300)은 아껴야 함
   });
 });
-

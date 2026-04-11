@@ -15,6 +15,16 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-04-11 15:10',
+    type: 'feat',
+    description: '캐릭터 관리에서 클리어 완료된 캐릭터가 별도 "완료된 딜러"/"완료된 버퍼" 섹션으로 분리되어 한 주의 진행 상황을 한눈에 확인할 수 있습니다.',
+  },
+  {
+    date: '2026-04-11 15:00',
+    type: 'feat',
+    description: '변경사항 탭이 추가되어 업데이트 내역을 확인할 수 있습니다.',
+  },
+  {
     date: '2026-04-11 14:47',
     type: 'feat',
     description: '배틀 크루세이더 지원 - 던담에 딜로 표시되는 진크루는 자동으로 딜러로 등록되며, 캐릭터 관리에서 진크루의 딜러/버퍼 역할을 수동으로 변경할 수도 있습니다.',

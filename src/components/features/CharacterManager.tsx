@@ -70,6 +70,14 @@ export function CharacterManager() {
         return bufferSort === 'asc' ? ba - bb : bb - ba;
       });
 
+  const isClearedChar = (c: typeof characters[number]) =>
+    isAlreadyCleared(weeklyClearRecords, c.characterId, c.serverId);
+
+  const activeDealers = dealers.filter((c) => !isClearedChar(c));
+  const clearedDealers = dealers.filter((c) => isClearedChar(c));
+  const activeBuffers = buffers.filter((c) => !isClearedChar(c));
+  const clearedBuffers = buffers.filter((c) => isClearedChar(c));
+
   async function handleDundamUpdate() {
     if (!dundamText.trim()) return;
     await setupFromDundam(dundamText);
@@ -246,10 +254,10 @@ export function CharacterManager() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                <span className="text-red-500">딜러</span> ({dealers.length})
+                <span className="text-red-500">딜러</span> ({activeDealers.length}/{dealers.length})
               </CardTitle>
             </CardHeader>
-            {dealers.length > 0 && (
+            {activeDealers.length > 0 && (
               <CardContent>
                 <Table>
                   <TableHeader>
@@ -267,21 +275,53 @@ export function CharacterManager() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {dealers.map((c) => renderCharacterRow(c, false))}
+                    {activeDealers.map((c) => renderCharacterRow(c, false))}
                   </TableBody>
                 </Table>
               </CardContent>
             )}
           </Card>
 
+          {/* 완료된 딜러 섹션 */}
+          {clearedDealers.length > 0 && (
+            <Card className="bg-muted/30">
+              <CardHeader>
+                <CardTitle className="text-base text-muted-foreground">
+                  완료된 딜러 ({clearedDealers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>캐릭터</TableHead>
+                      <TableHead>직업</TableHead>
+                      <TableHead
+                        className="cursor-pointer select-none hover:text-foreground"
+                        onClick={() => setDealerSort((prev) => prev === 'none' ? 'desc' : prev === 'desc' ? 'asc' : 'none')}
+                      >
+                        딜 (억) {dealerSort === 'desc' ? '↓' : dealerSort === 'asc' ? '↑' : ''}
+                      </TableHead>
+                      <TableHead>클리어</TableHead>
+                      <TableHead className="w-16"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clearedDealers.map((c) => renderCharacterRow(c, false))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
           {/* 버퍼 섹션 */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                <span className="text-blue-500">버퍼</span> ({buffers.length})
+                <span className="text-blue-500">버퍼</span> ({activeBuffers.length}/{buffers.length})
               </CardTitle>
             </CardHeader>
-            {buffers.length > 0 && (
+            {activeBuffers.length > 0 && (
               <CardContent>
                 <Table>
                   <TableHeader>
@@ -299,12 +339,44 @@ export function CharacterManager() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {buffers.map((c) => renderCharacterRow(c, true))}
+                    {activeBuffers.map((c) => renderCharacterRow(c, true))}
                   </TableBody>
                 </Table>
               </CardContent>
             )}
           </Card>
+
+          {/* 완료된 버퍼 섹션 */}
+          {clearedBuffers.length > 0 && (
+            <Card className="bg-muted/30">
+              <CardHeader>
+                <CardTitle className="text-base text-muted-foreground">
+                  완료된 버퍼 ({clearedBuffers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>캐릭터</TableHead>
+                      <TableHead>직업</TableHead>
+                      <TableHead
+                        className="cursor-pointer select-none hover:text-foreground"
+                        onClick={() => setBufferSort((prev) => prev === 'none' ? 'desc' : prev === 'desc' ? 'asc' : 'none')}
+                      >
+                        버프력 (만) {bufferSort === 'desc' ? '↓' : bufferSort === 'asc' ? '↑' : ''}
+                      </TableHead>
+                      <TableHead>클리어</TableHead>
+                      <TableHead className="w-16"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clearedBuffers.map((c) => renderCharacterRow(c, true))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 

@@ -15,6 +15,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-04-11 15:35',
+    type: 'feat',
+    description: '프리셋 카드를 클릭하면 조건이 적용되는 동시에 최적 파티 구성이 자동으로 실행됩니다.',
+  },
+  {
     date: '2026-04-11 15:25',
     type: 'feat',
     description: '버퍼교환 조건 프리셋을 코드로 공유하고 가져올 수 있습니다. 프리셋 카드의 "공유" 버튼으로 코드를 복사하고, "코드로 가져오기"로 다른 사용자의 프리셋을 추가할 수 있습니다.',

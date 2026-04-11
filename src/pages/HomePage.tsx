@@ -134,6 +134,25 @@ export function HomePage() {
     setUseTotalDamage(preset.useTotalDamage);
     setMinTotalDamage(preset.minTotalDamage ? String(preset.minTotalDamage) : '');
     setTruncateOnesDigit(preset.truncateOnesDigit ?? false);
+
+    // 캐릭터가 등록되어 있고 슬롯 합이 인원 수를 넘지 않으면 자동 파티 구성
+    const presetSlotSum = preset.dealerSlots + preset.bufferSlots + preset.secondaryBufferSlots;
+    if (characters.length === 0 || presetSlotSum > preset.totalMembers) return;
+
+    const presetTruncateOnesDigit = preset.truncateOnesDigit ?? false;
+    const input: BufferExchangeInput = {
+      dealerSlots: preset.dealerSlots,
+      bufferSlots: preset.bufferSlots,
+      secondaryBufferSlots: preset.secondaryBufferSlots,
+      carrySlots: preset.totalMembers - presetSlotSum,
+      minDealerDamage: preset.minDealerDamage,
+      minPrimaryBuffPower: preset.minPrimaryBuffPower,
+      minSecondaryBuffPower: preset.minSecondaryBuffPower,
+      useTotalDamage: preset.useTotalDamage,
+      minTotalDamage: preset.minTotalDamage,
+      truncateOnesDigit: presetTruncateOnesDigit,
+    };
+    buildParty(input);
   }
 
   return (

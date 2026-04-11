@@ -19,6 +19,8 @@ import { CharacterManager } from '@/components/features/CharacterManager';
 import { AdventureSetupDialog } from '@/components/features/AdventureSetupDialog';
 import { AddCarryDialog } from '@/components/features/AddCarryDialog';
 import { ChangelogView } from '@/components/features/ChangelogView';
+import { PresetShareDialog } from '@/components/features/PresetShareDialog';
+import { PresetImportDialog } from '@/components/features/PresetImportDialog';
 import { characterKey } from '@/domain/party-builder';
 
 import type { BufferExchangeInput } from '@/domain/party';
@@ -39,6 +41,8 @@ export function HomePage() {
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
   const [addCarryTargetIndex, setAddCarryTargetIndex] = useState<number | null>(null);
+  const [sharePreset, setSharePreset] = useState<Preset | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const characters = useCharacterStore((state) => state.characters);
   const adventureName = useCharacterStore((state) => state.adventureName);
@@ -347,6 +351,15 @@ export function HomePage() {
                     </div>
                   )}
 
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setImportDialogOpen(true)}
+                    className="w-full text-xs"
+                  >
+                    코드로 가져오기
+                  </Button>
+
                   {/* 프리셋 목록 */}
                   {presets.length > 0 && (
                     <div className="space-y-2">
@@ -358,15 +371,24 @@ export function HomePage() {
                             className="rounded-lg border border-border bg-card p-3 cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
                             onClick={() => handleLoadPreset(p)}
                           >
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-medium">{p.name}</p>
-                              <button
-                                type="button"
-                                className="text-xs text-muted-foreground hover:text-destructive"
-                                onClick={(e) => { e.stopPropagation(); deletePreset(p.id); }}
-                              >
-                                삭제
-                              </button>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium truncate">{p.name}</p>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  className="text-xs text-muted-foreground hover:text-primary"
+                                  onClick={(e) => { e.stopPropagation(); setSharePreset(p); }}
+                                >
+                                  공유
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-xs text-muted-foreground hover:text-destructive"
+                                  onClick={(e) => { e.stopPropagation(); deletePreset(p.id); }}
+                                >
+                                  삭제
+                                </button>
+                              </div>
                             </div>
                             <div className="mt-1 flex flex-wrap gap-1">
                               <span className="rounded bg-muted px-1.5 py-0.5 text-xs">인원 {p.totalMembers}</span>
@@ -439,6 +461,17 @@ export function HomePage() {
           }
         }}
         remainingSlots={remainingCarrySlots}
+      />
+
+      <PresetShareDialog
+        preset={sharePreset}
+        onClose={() => setSharePreset(null)}
+      />
+
+      <PresetImportDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImport={(preset) => savePreset(preset)}
       />
     </div>
   );

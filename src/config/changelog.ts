@@ -15,6 +15,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-04-11 15:25',
+    type: 'feat',
+    description: '버퍼교환 조건 프리셋을 코드로 공유하고 가져올 수 있습니다. 프리셋 카드의 "공유" 버튼으로 코드를 복사하고, "코드로 가져오기"로 다른 사용자의 프리셋을 추가할 수 있습니다.',
+  },
+  {
     date: '2026-04-11 15:10',
     type: 'feat',
     description: '캐릭터 관리에서 클리어 완료된 캐릭터가 별도 "완료된 딜러"/"완료된 버퍼" 섹션으로 분리되어 한 주의 진행 상황을 한눈에 확인할 수 있습니다.',

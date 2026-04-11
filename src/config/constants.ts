@@ -70,4 +70,8 @@ export const STORAGE_KEYS = {
   API_SETTINGS: 'dnf_gyo_api_settings',
   ADVENTURE_CACHE: 'dnf_gyo_adventure_cache',
   PRESETS: 'dnf_gyo_presets',
+  LAST_DUNDAM_SYNC: 'dnf_gyo_last_dundam_sync',
 } as const;
+
+/** 던담 데이터 갱신 알림 임계값 (일) */
+export const DUNDAM_REFRESH_THRESHOLD_DAYS = 3;

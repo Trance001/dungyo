@@ -4,6 +4,7 @@ import { useCharacterStore } from '@/stores/character-store';
 import { getCharactersByNames } from '@/services/neople-api';
 import { parseDundamText } from '@/domain/dundam-parser';
 import { isBufferJob } from '@/domain/character';
+import { useDundamSync } from '@/hooks/useDundamSync';
 import { MAX_CHARACTERS } from '@/config/constants';
 
 import type { Character } from '@/domain/character';
@@ -29,6 +30,7 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
   const setBuffPower = useCharacterStore((state) => state.setBuffPower);
   const setRoleOverride = useCharacterStore((state) => state.setRoleOverride);
   const clearRoleOverride = useCharacterStore((state) => state.clearRoleOverride);
+  const { recordSync } = useDundamSync();
 
   async function setupFromDundam(text: string): Promise<void> {
     setError(null);
@@ -88,6 +90,7 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
 
     setAdventure(parsed.serverId, parsed.adventureName);
     setCharacters(registeredCharacters);
+    recordSync();
 
     // 딜/버프 수치 자동 입력
     const dundamMap = new Map<string, DundamCharacterData>();

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import { AddCarryDialog } from '@/components/features/AddCarryDialog';
 import { ChangelogView } from '@/components/features/ChangelogView';
 import { PresetShareDialog } from '@/components/features/PresetShareDialog';
 import { PresetImportDialog } from '@/components/features/PresetImportDialog';
+import { usePresetUrlHash } from '@/hooks/usePresetUrlHash';
 import { characterKey } from '@/domain/party-builder';
 
 import type { BufferExchangeInput } from '@/domain/party';
@@ -43,6 +44,18 @@ export function HomePage() {
   const [addCarryTargetIndex, setAddCarryTargetIndex] = useState<number | null>(null);
   const [sharePreset, setSharePreset] = useState<Preset | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importInitialCode, setImportInitialCode] = useState<string | undefined>(undefined);
+
+  const { pendingCode, clearPendingCode } = usePresetUrlHash();
+
+  // URL 해시로 전달된 프리셋 코드가 있으면 가져오기 다이얼로그 자동 오픈
+  useEffect(() => {
+    if (pendingCode) {
+      setImportInitialCode(pendingCode);
+      setImportDialogOpen(true);
+      clearPendingCode();
+    }
+  }, [pendingCode, clearPendingCode]);
 
   const characters = useCharacterStore((state) => state.characters);
   const adventureName = useCharacterStore((state) => state.adventureName);
@@ -489,8 +502,12 @@ export function HomePage() {
 
       <PresetImportDialog
         open={importDialogOpen}
-        onClose={() => setImportDialogOpen(false)}
+        onClose={() => {
+          setImportDialogOpen(false);
+          setImportInitialCode(undefined);
+        }}
         onImport={(preset) => savePreset(preset)}
+        initialCode={importInitialCode}
       />
     </div>
   );

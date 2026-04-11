@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,12 +18,21 @@ interface PresetImportDialogProps {
   open: boolean;
   onClose: () => void;
   onImport: (preset: Omit<Preset, 'id'>) => void;
+  initialCode?: string;
 }
 
-export function PresetImportDialog({ open, onClose, onImport }: PresetImportDialogProps) {
+export function PresetImportDialog({ open, onClose, onImport, initialCode }: PresetImportDialogProps) {
   const [code, setCode] = useState('');
   const [customName, setCustomName] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // 다이얼로그가 열릴 때 외부에서 전달받은 코드가 있으면 자동 입력
+  useEffect(() => {
+    if (open && initialCode) {
+      setCode(initialCode);
+      setError(null);
+    }
+  }, [open, initialCode]);
 
   const decoded = code.trim() ? decodePreset(code) : null;
   const isValid = decoded !== null;

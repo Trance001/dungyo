@@ -23,6 +23,8 @@ import { getCharacterImageUrl, getDundamAdventureUrl, getDundamCharacterUrl, get
 import { characterKey } from '@/domain/party-builder';
 import { isAlreadyCleared } from '@/domain/weekly-clear';
 import { useAdventureSetup } from '@/hooks/useAdventureSetup';
+import { useDundamSync } from '@/hooks/useDundamSync';
+import { AdventureBackupDialog } from '@/components/features/AdventureBackupDialog';
 
 type SortOrder = 'none' | 'asc' | 'desc';
 
@@ -31,7 +33,9 @@ export function CharacterManager() {
   const [snackbar, setSnackbar] = useState<string | null>(null);
   const [dealerSort, setDealerSort] = useState<SortOrder>('none');
   const [bufferSort, setBufferSort] = useState<SortOrder>('none');
+  const [backupMode, setBackupMode] = useState<'export' | 'import' | null>(null);
   const { isLoading, progress, error: dundamError, setupFromDundam } = useAdventureSetup();
+  const { daysSinceSync, needsRefresh } = useDundamSync();
 
   const {
     characters,
@@ -185,6 +189,15 @@ export function CharacterManager() {
 
   return (
     <div className="space-y-6">
+      {/* 던담 갱신 알림 */}
+      {needsRefresh && characters.length > 0 && (
+        <div className="rounded-lg border border-amber-500/50 bg-amber-950/20 p-3">
+          <p className="text-sm text-amber-300">
+            마지막 던담 갱신 후 {daysSinceSync}일이 지났습니다. 최신 스펙을 반영하려면 아래에서 던담 데이터를 다시 붙여넣어 갱신하세요.
+          </p>
+        </div>
+      )}
+
       {/* 던담 데이터 갱신 */}
       <Card>
         <CardHeader>
@@ -220,9 +233,15 @@ export function CharacterManager() {
       {/* 던담 바로가기 + 일괄 작업 */}
       {characters.length > 0 && (
         <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={clearAllWeeklyRecords}>
               클리어 일괄 해제
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setBackupMode('export')}>
+              데이터 내보내기
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setBackupMode('import')}>
+              데이터 가져오기
             </Button>
             <Button variant="destructive" size="sm" onClick={clearAdventure}>
               전체 초기화
@@ -244,8 +263,11 @@ export function CharacterManager() {
 
       {characters.length === 0 ? (
         <Card>
-          <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
-            등록된 캐릭터가 없습니다. 던담 데이터를 붙여넣어 등록하세요.
+          <CardContent className="flex flex-col items-center justify-center py-8 gap-3 text-muted-foreground">
+            <p>등록된 캐릭터가 없습니다. 던담 데이터를 붙여넣어 등록하세요.</p>
+            <Button variant="outline" size="sm" onClick={() => setBackupMode('import')}>
+              백업 코드로 복원하기
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -379,6 +401,12 @@ export function CharacterManager() {
           )}
         </>
       )}
+
+      <AdventureBackupDialog
+        open={backupMode !== null}
+        mode={backupMode ?? 'export'}
+        onClose={() => setBackupMode(null)}
+      />
 
       {/* 스낵바 */}
       {snackbar && (

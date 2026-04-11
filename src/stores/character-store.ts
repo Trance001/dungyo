@@ -6,6 +6,8 @@ import { storage } from '@/services/storage';
 import { MAX_CHARACTERS, STORAGE_KEYS } from '@/config/constants';
 import { characterKey } from '@/domain/party-builder';
 
+import type { AdventureSnapshot } from '@/lib/adventure-codec';
+
 interface CharacterState {
   /** 모험단명 */
   adventureName: string | null;
@@ -45,6 +47,8 @@ interface CharacterActions {
   setError: (error: string | null) => void;
   loadFromStorage: () => void;
   saveToStorage: () => void;
+  exportSnapshot: () => AdventureSnapshot;
+  importSnapshot: (snapshot: AdventureSnapshot) => void;
 }
 
 export const useCharacterStore = create<CharacterState & CharacterActions>(
@@ -210,6 +214,32 @@ export const useCharacterStore = create<CharacterState & CharacterActions>(
         weeklyClearRecords: state.weeklyClearRecords,
       };
       storage.set(STORAGE_KEYS.ADVENTURE_CACHE, data);
+    },
+
+    exportSnapshot: () => {
+      const state = get();
+      return {
+        adventureName: state.adventureName,
+        serverId: state.serverId,
+        characters: state.characters,
+        damageMap: Object.fromEntries(state.damageMap),
+        buffPowerMap: Object.fromEntries(state.buffPowerMap),
+        roleOverrideMap: Object.fromEntries(state.roleOverrideMap) as Record<string, 'dealer' | 'buffer'>,
+        weeklyClearRecords: state.weeklyClearRecords,
+      };
+    },
+
+    importSnapshot: (snapshot: AdventureSnapshot) => {
+      set({
+        adventureName: snapshot.adventureName,
+        serverId: snapshot.serverId,
+        characters: snapshot.characters.slice(0, MAX_CHARACTERS),
+        damageMap: new Map(Object.entries(snapshot.damageMap)),
+        buffPowerMap: new Map(Object.entries(snapshot.buffPowerMap)),
+        roleOverrideMap: new Map(Object.entries(snapshot.roleOverrideMap)),
+        weeklyClearRecords: snapshot.weeklyClearRecords,
+      });
+      get().saveToStorage();
     },
   }),
 );

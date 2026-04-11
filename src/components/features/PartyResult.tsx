@@ -324,26 +324,27 @@ function cleanJobName(jobGrowName: string): string {
   return jobGrowName.replace(/^眞\s*/, '');
 }
 
+function truncateOnes(value: number): number {
+  return Math.floor(value / 10) * 10;
+}
+
 function buildCopyText(composition: PartyComposition): string {
   const parts: string[] = [];
 
   for (const dealer of composition.dealers) {
-    parts.push(`${cleanJobName(dealer.jobGrowName)}(${dealer.damage.toLocaleString()})`);
+    parts.push(`${cleanJobName(dealer.jobGrowName)}(${truncateOnes(dealer.damage).toLocaleString()})`);
   }
   for (const buffer of composition.primaryBuffers) {
-    parts.push(`${cleanJobName(buffer.jobGrowName)}(${buffer.buffPower.toLocaleString()})`);
+    parts.push(`${cleanJobName(buffer.jobGrowName)}(${truncateOnes(buffer.buffPower).toLocaleString()})`);
   }
   for (const buffer of composition.secondaryBuffers) {
-    parts.push(`업벞 ${cleanJobName(buffer.jobGrowName)} (${buffer.buffPower.toLocaleString()})`);
+    parts.push(`업벞 ${cleanJobName(buffer.jobGrowName)} (${truncateOnes(buffer.buffPower).toLocaleString()})`);
   }
 
   let text = parts.join(' / ');
 
   if (composition.useTotalDamage && composition.dealers.length > 0) {
-    const total = composition.dealers.reduce((sum, d) => {
-      const dmg = composition.truncateOnesDigit ? Math.floor(d.damage / 10) * 10 : d.damage;
-      return sum + dmg;
-    }, 0);
+    const total = composition.dealers.reduce((sum, d) => sum + truncateOnes(d.damage), 0);
     text += ` / 딜합 ${total.toLocaleString()}`;
   }
 

@@ -219,6 +219,7 @@ export function buildPartyComposition(
 
   return {
     slotConfig,
+    useTotalDamage: input.useTotalDamage,
     truncateOnesDigit: input.useTotalDamage && input.truncateOnesDigit,
     dealers: selectedDealers,
     primaryBuffers,

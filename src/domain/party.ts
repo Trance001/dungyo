@@ -14,6 +14,8 @@ export interface SlotConfig {
 /** 파티 구성 결과 */
 export interface PartyComposition {
   slotConfig: SlotConfig;
+  /** 딜합벞교 옵션 사용 여부 */
+  useTotalDamage: boolean;
   /** 딜합 계산 시 1의 자리 버림 적용 여부 */
   truncateOnesDigit: boolean;
   dealers: DealerCharacter[];

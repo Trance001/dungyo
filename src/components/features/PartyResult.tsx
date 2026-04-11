@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   Card,
   CardContent,
@@ -34,23 +36,42 @@ export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveC
   const markCleared = useCharacterStore((state) => state.markCleared);
   const unmarkCleared = useCharacterStore((state) => state.unmarkCleared);
   const weeklyClearRecords = useCharacterStore((state) => state.weeklyClearRecords);
+  const [copied, setCopied] = useState(false);
 
   const title = partyIndex !== undefined
     ? `파티 ${partyIndex + 1}`
     : '구성 결과';
 
+  async function handleCopy() {
+    const text = buildCopyText(composition);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 무시: 권한 없음 등
+    }
+  }
+
   return (
     <div className={`space-y-4 rounded-lg border p-4 ${composition.isComplete ? 'border-border bg-muted/30' : 'border-red-400/50 bg-red-950/20'}`}>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div>
               <CardTitle>{title}</CardTitle>
               <CardDescription>{description}</CardDescription>
             </div>
-            <Badge variant={composition.isComplete ? 'default' : 'destructive'}>
-              {composition.isComplete ? '구성 완료' : '인원 부족'}
-            </Badge>
+            <div className="flex items-center gap-2 shrink-0">
+              {composition.isComplete && (
+                <Button variant="outline" size="sm" onClick={handleCopy}>
+                  {copied ? '복사됨' : '복사'}
+                </Button>
+              )}
+              <Badge variant={composition.isComplete ? 'default' : 'destructive'}>
+                {composition.isComplete ? '구성 완료' : '인원 부족'}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -297,6 +318,36 @@ function CharacterSlotCard({
       </div>
     </div>
   );
+}
+
+function cleanJobName(jobGrowName: string): string {
+  return jobGrowName.replace(/^眞\s*/, '');
+}
+
+function buildCopyText(composition: PartyComposition): string {
+  const parts: string[] = [];
+
+  for (const dealer of composition.dealers) {
+    parts.push(`${cleanJobName(dealer.jobGrowName)}(${dealer.damage.toLocaleString()})`);
+  }
+  for (const buffer of composition.primaryBuffers) {
+    parts.push(`${cleanJobName(buffer.jobGrowName)}(${buffer.buffPower.toLocaleString()})`);
+  }
+  for (const buffer of composition.secondaryBuffers) {
+    parts.push(`업벞 ${cleanJobName(buffer.jobGrowName)} (${buffer.buffPower.toLocaleString()})`);
+  }
+
+  let text = parts.join(' / ');
+
+  if (composition.useTotalDamage && composition.dealers.length > 0) {
+    const total = composition.dealers.reduce((sum, d) => {
+      const dmg = composition.truncateOnesDigit ? Math.floor(d.damage / 10) * 10 : d.damage;
+      return sum + dmg;
+    }, 0);
+    text += ` / 딜합 ${total.toLocaleString()}`;
+  }
+
+  return text;
 }
 
 function formatDealerStat(damage: number, truncate: boolean): string {

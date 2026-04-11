@@ -15,6 +15,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-04-11 23:24',
+    type: 'fix',
+    description: '던담 파싱 시 4인 파티 기준 딜이 표시된 캐릭터는 솔로 딜 대신 파티 딜을 사용합니다. 파티용 장비로 솔로/파티 딜이 다른 캐릭터가 정확한 파티 딜로 반영됩니다.',
+  },
+  {
     date: '2026-04-11 15:35',
     type: 'feat',
     description: '프리셋 카드를 클릭하면 조건이 적용되는 동시에 최적 파티 구성이 자동으로 실행됩니다.',

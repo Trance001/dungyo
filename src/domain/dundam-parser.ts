@@ -73,50 +73,86 @@ export function parseDundamText(text: string): DundamParseResult {
 
         // 캐릭터명 찾기: 모험단명으로 끝나는 줄
         let characterName: string | null = null;
-        let damage: number | null = null;
-        let buffPower: number | null = null;
+        /** 랭킹 표시 딜 (솔로/기본) */
+        let rankDamage: number | null = null;
+        /** 4인 파티 기준 딜 (장비 버프 포함) - 버퍼교환 시 우선 사용 */
+        let partyDamage: number | null = null;
+        let buffScore: number | null = null;
 
         // 이후 줄에서 캐릭터명과 스탯 검색
         for (let j = i + 2; j < Math.min(i + 20, lines.length); j++) {
           const searchLine = lines[j];
 
-          // 캐릭터명 + 모험단명
-          if (searchLine.endsWith(adventureName) && searchLine.length > adventureName.length) {
+          // 캐릭터명 + 모험단명 (첫 매칭만 사용)
+          if (characterName === null && searchLine.endsWith(adventureName) && searchLine.length > adventureName.length) {
             characterName = searchLine.slice(0, -adventureName.length);
           }
 
-          // 딜러 딜 수치: "랭킹X 조 XXXX 억" 또는 "랭킹XXXX 억 XXXX 만"
-          const damageJoMatch = searchLine.match(/랭킹\s*([\d,]+)\s*조\s*([\d,]+)\s*억/);
-          if (damageJoMatch) {
-            const jo = parseInt(damageJoMatch[1].replace(/,/g, ''), 10);
-            const eok = parseInt(damageJoMatch[2].replace(/,/g, ''), 10);
-            damage = jo * 10000 + eok;
-            break;
+          // 4인 파티 딜 (조 단위): "4인X 조 XXXX 억"
+          if (partyDamage === null) {
+            const m = searchLine.match(/4인\s*([\d,]+)\s*조\s*([\d,]+)\s*억/);
+            if (m) {
+              const jo = parseInt(m[1].replace(/,/g, ''), 10);
+              const eok = parseInt(m[2].replace(/,/g, ''), 10);
+              partyDamage = jo * 10000 + eok;
+              continue;
+            }
           }
 
-          const damageMatch = searchLine.match(/랭킹\s*([\d,]+)\s*억\s*([\d,]+)\s*만/);
-          if (damageMatch) {
-            damage = parseInt(damageMatch[1].replace(/,/g, ''), 10);
-            break;
+          // 4인 파티 딜 (억 단위): "4인XXX 억 XXXX 만" 또는 "4인XXX억"
+          if (partyDamage === null) {
+            const m = searchLine.match(/4인\s*([\d,]+)\s*억/);
+            if (m) {
+              partyDamage = parseInt(m[1].replace(/,/g, ''), 10);
+              continue;
+            }
+          }
+
+          // 랭킹 딜 (조 단위)
+          if (rankDamage === null) {
+            const m = searchLine.match(/랭킹\s*([\d,]+)\s*조\s*([\d,]+)\s*억/);
+            if (m) {
+              const jo = parseInt(m[1].replace(/,/g, ''), 10);
+              const eok = parseInt(m[2].replace(/,/g, ''), 10);
+              rankDamage = jo * 10000 + eok;
+              continue;
+            }
+          }
+
+          // 랭킹 딜 (억 단위)
+          if (rankDamage === null) {
+            const m = searchLine.match(/랭킹\s*([\d,]+)\s*억\s*([\d,]+)\s*만/);
+            if (m) {
+              rankDamage = parseInt(m[1].replace(/,/g, ''), 10);
+              continue;
+            }
           }
 
           // 버퍼 점수: "버프점수X,XXX,XXX"
-          const buffMatch = searchLine.match(/버프점수\s*([\d,]+)/);
-          if (buffMatch) {
-            buffPower = parseInt(buffMatch[1].replace(/,/g, ''), 10);
-            break;
+          if (buffScore === null) {
+            const m = searchLine.match(/버프점수\s*([\d,]+)/);
+            if (m) {
+              buffScore = parseInt(m[1].replace(/,/g, ''), 10);
+              continue;
+            }
           }
 
-          // 4인 버프점수: "4인X,XXX,XXX" (인챈트리스 등)
-          const buff4Match = searchLine.match(/4인\s*([\d,]+)/);
-          if (buff4Match && isBufferJob(jobGrowName)) {
-            buffPower = parseInt(buff4Match[1].replace(/,/g, ''), 10);
-            break;
+          // 4인 버프점수 (인챈트리스 등 - "4인4,727,157" 형태, 억/만 없음)
+          if (buffScore === null && isBufferJob(jobGrowName)) {
+            const m = searchLine.match(/^4인\s*([\d,]+)$/);
+            if (m) {
+              buffScore = parseInt(m[1].replace(/,/g, ''), 10);
+              continue;
+            }
           }
 
           // 다음 서버명이 나오면 현재 블록 종료
           if (SERVER_NAME_MAP[searchLine]) break;
         }
+
+        // 우선순위: 4인 파티 딜 > 랭킹 딜
+        const damage = partyDamage !== null ? partyDamage : rankDamage;
+        const buffPower = buffScore;
 
         if (characterName) {
           characters.push({

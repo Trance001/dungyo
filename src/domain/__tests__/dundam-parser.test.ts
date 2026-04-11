@@ -119,6 +119,44 @@ describe('parseDundamText', () => {
     expect(ranger!.damage).toBe(35024); // 3 * 10000 + 5024
   });
 
+  it('4인 파티 딜이 있으면 랭킹 딜보다 우선한다', () => {
+    const text = `캐릭터 검색버프 랭킹딜러 랭킹
+모험단
+테스트모험단
+검색 결과 입니다.
+프레이
+眞 스트라이커
+264
+0
+0 / 0
+119.9
+FANTA테스트모험단
+75684
+4인103억 3449만
+랭킹90 억 101 만
+개인정보 처리방침`;
+
+    const result = parseDundamText(text);
+    const fanta = result.characters.find((c) => c.characterName === 'FANTA');
+    expect(fanta).toBeDefined();
+    expect(fanta!.damage).toBe(103); // 4인 딜 사용 (랭킹 90이 아님)
+  });
+
+  it('4인 딜이 없으면 랭킹 딜을 사용한다', () => {
+    const result = parseDundamText(SAMPLE_TEXT);
+    const ranger = result.characters.find((c) => c.characterName === '제로디스턴스');
+    expect(ranger).toBeDefined();
+    expect(ranger!.damage).toBe(5474); // 랭킹 딜
+  });
+
+  it('버퍼 캐릭터의 4인 라인(4인 X,XXX,XXX)은 정상적으로 buffPower로 파싱된다', () => {
+    const result = parseDundamText(SAMPLE_TEXT);
+    const enchantress = result.characters.find((c) => c.characterName === '숙명의크리스');
+    expect(enchantress).toBeDefined();
+    expect(enchantress!.buffPower).toBe(4727157);
+    expect(enchantress!.damage).toBeNull();
+  });
+
   it('빈 텍스트에서는 빈 결과를 반환한다', () => {
     const result = parseDundamText('');
     expect(result.adventureName).toBeNull();

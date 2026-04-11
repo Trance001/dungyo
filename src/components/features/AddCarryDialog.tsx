@@ -8,8 +8,8 @@ import {
 } from '@/components/ui/dialog';
 import {
   getCharacterImageUrl,
+  getEffectiveRole,
   hasValidCharacterId,
-  isBufferJob,
 } from '@/domain/character';
 import { characterKey } from '@/domain/party-builder';
 import { useCharacterStore } from '@/stores/character-store';
@@ -33,6 +33,7 @@ export function AddCarryDialog({
 }: AddCarryDialogProps) {
   const damageMap = useCharacterStore((state) => state.damageMap);
   const buffPowerMap = useCharacterStore((state) => state.buffPowerMap);
+  const roleOverrideMap = useCharacterStore((state) => state.roleOverrideMap);
 
   function handleAdd(character: Character) {
     onAdd(character);
@@ -57,7 +58,7 @@ export function AddCarryDialog({
             </p>
           ) : (
             availableCharacters.map((c) => {
-              const isBuffer = isBufferJob(c.jobGrowName);
+              const isBuffer = getEffectiveRole(c, roleOverrideMap) === 'buffer';
               const statValue = isBuffer
                 ? buffPowerMap.get(characterKey(c))
                 : damageMap.get(characterKey(c));

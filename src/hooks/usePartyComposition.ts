@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { useCharacterStore } from '@/stores/character-store';
 import { buildMultipleParties, characterKey } from '@/domain/party-builder';
-import { isBufferJob } from '@/domain/character';
+import { getEffectiveRole } from '@/domain/character';
 
 import type { Character } from '@/domain/character';
 import type { BufferExchangeInput, PartyComposition } from '@/domain/party';
@@ -21,6 +21,7 @@ export function usePartyComposition(): UsePartyCompositionReturn {
   const characters = useCharacterStore((state) => state.characters);
   const damageMap = useCharacterStore((state) => state.damageMap);
   const buffPowerMap = useCharacterStore((state) => state.buffPowerMap);
+  const roleOverrideMap = useCharacterStore((state) => state.roleOverrideMap);
   const weeklyClearRecords = useCharacterStore(
     (state) => state.weeklyClearRecords,
   );
@@ -32,6 +33,7 @@ export function usePartyComposition(): UsePartyCompositionReturn {
       damageMap,
       buffPowerMap,
       weeklyClearRecords,
+      roleOverrideMap,
     );
     setPartyResults(results);
   }
@@ -46,7 +48,7 @@ export function usePartyComposition(): UsePartyCompositionReturn {
       const filled = party.carryDealers.length + party.carryBuffers.length;
       if (filled >= party.carryCount) return party;
 
-      if (isBufferJob(character.jobGrowName)) {
+      if (getEffectiveRole(character, roleOverrideMap) === 'buffer') {
         const buffPower = buffPowerMap.get(characterKey(character)) ?? 0;
         return {
           ...party,

@@ -39,9 +39,23 @@ export interface CarryCharacter extends Character {
 /** 역할이 할당된 캐릭터 유니온 */
 export type RoledCharacter = DealerCharacter | BufferCharacter | CarryCharacter;
 
-/** 버퍼 직업군 여부 판별 */
+/** 버퍼 직업군 여부 판별 (이름 기반) */
 export function isBufferJob(jobGrowName: string): boolean {
   return (BUFFER_JOB_GROW_NAMES as ReadonlyArray<string>).includes(jobGrowName);
+}
+
+/**
+ * 캐릭터의 실제 역할 판별
+ * 오버라이드가 있으면 우선 적용, 없으면 이름 기반 분류로 폴백
+ */
+export function getEffectiveRole(
+  character: { jobGrowName: string; serverId: string; characterId: string },
+  roleOverrideMap: Map<string, 'dealer' | 'buffer'>,
+): 'dealer' | 'buffer' {
+  const key = `${character.serverId}:${character.characterId}`;
+  const override = roleOverrideMap.get(key);
+  if (override) return override;
+  return isBufferJob(character.jobGrowName) ? 'buffer' : 'dealer';
 }
 
 /** NeopleCharacterInfoResponse → Character 엔티티 변환 */

@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useCharacterStore } from '@/stores/character-store';
-import { getCharacterImageUrl, getDundamAdventureUrl, getDundamCharacterUrl, hasValidCharacterId, isBufferJob } from '@/domain/character';
+import { getCharacterImageUrl, getDundamAdventureUrl, getDundamCharacterUrl, getEffectiveRole, hasValidCharacterId, isBufferJob } from '@/domain/character';
 import { characterKey } from '@/domain/party-builder';
 import { isAlreadyCleared } from '@/domain/weekly-clear';
 import { useAdventureSetup } from '@/hooks/useAdventureSetup';
@@ -38,18 +38,21 @@ export function CharacterManager() {
     adventureName,
     damageMap,
     buffPowerMap,
+    roleOverrideMap,
     weeklyClearRecords,
     removeCharacter,
     setDamage,
     setBuffPower,
+    setRoleOverride,
+    clearRoleOverride,
     markCleared,
     unmarkCleared,
     clearAdventure,
     clearAllWeeklyRecords,
   } = useCharacterStore();
 
-  const dealersRaw = characters.filter((c) => !isBufferJob(c.jobGrowName));
-  const buffersRaw = characters.filter((c) => isBufferJob(c.jobGrowName));
+  const dealersRaw = characters.filter((c) => getEffectiveRole(c, roleOverrideMap) === 'dealer');
+  const buffersRaw = characters.filter((c) => getEffectiveRole(c, roleOverrideMap) === 'buffer');
 
   const dealers = dealerSort === 'none'
     ? dealersRaw
@@ -146,9 +149,27 @@ export function CharacterManager() {
           )}
         </TableCell>
         <TableCell>
-          <Button variant="ghost" size="sm" onClick={() => removeCharacter(c.serverId, c.characterId)} className="text-destructive hover:text-destructive">
-            삭제
-          </Button>
+          <div className="flex flex-col gap-1 items-end">
+            {isBufferJob(c.jobGrowName) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (isBuffer) {
+                    setRoleOverride(c.serverId, c.characterId, 'dealer');
+                  } else {
+                    clearRoleOverride(c.serverId, c.characterId);
+                  }
+                }}
+                className="text-xs h-6"
+              >
+                {isBuffer ? '딜러로' : '버퍼로'}
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => removeCharacter(c.serverId, c.characterId)} className="text-destructive hover:text-destructive">
+              삭제
+            </Button>
+          </div>
         </TableCell>
       </TableRow>
     );

@@ -40,7 +40,7 @@ describe('filterDealers', () => {
       ['cain:b1', 400],
     ]);
 
-    const result = filterDealers(chars, damageMap, 200, []);
+    const result = filterDealers(chars, damageMap, 200, [], new Map());
     expect(result).toHaveLength(2);
     expect(result[0].characterId).toBe('d2');
     expect(result[1].characterId).toBe('d1');
@@ -50,7 +50,7 @@ describe('filterDealers', () => {
     const chars = [makeCharacter({ characterId: 'b1', jobGrowName: '眞 인챈트리스' })];
     const damageMap = new Map([['cain:b1', 999]]);
 
-    const result = filterDealers(chars, damageMap, 0, []);
+    const result = filterDealers(chars, damageMap, 0, [], new Map());
     expect(result).toHaveLength(0);
   });
 
@@ -58,7 +58,7 @@ describe('filterDealers', () => {
     const chars = [makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' })];
     const damageMap = new Map([['cain:d1', 100]]);
 
-    const result = filterDealers(chars, damageMap, 200, []);
+    const result = filterDealers(chars, damageMap, 200, [], new Map());
     expect(result).toHaveLength(0);
   });
 
@@ -73,7 +73,7 @@ describe('filterDealers', () => {
       weekKey: getCurrentWeekKey(),
     }];
 
-    const result = filterDealers(chars, damageMap, 0, clears);
+    const result = filterDealers(chars, damageMap, 0, clears, new Map());
     expect(result).toHaveLength(0);
   });
 });
@@ -91,7 +91,7 @@ describe('filterBuffers', () => {
       ['cain:d1', 60000],
     ]);
 
-    const result = filterBuffers(chars, buffMap, 30000, []);
+    const result = filterBuffers(chars, buffMap, 30000, [], new Map());
     expect(result).toHaveLength(2);
     expect(result[0].characterId).toBe('b2');
     expect(result[1].characterId).toBe('b1');
@@ -101,7 +101,7 @@ describe('filterBuffers', () => {
     const chars = [makeCharacter({ characterId: 'd1', jobGrowName: '소드마스터' })];
     const buffMap = new Map([['cain:d1', 99999]]);
 
-    const result = filterBuffers(chars, buffMap, 0, []);
+    const result = filterBuffers(chars, buffMap, 0, [], new Map());
     expect(result).toHaveLength(0);
   });
 });
@@ -121,7 +121,7 @@ describe('buildPartyComposition', () => {
 
     const result = buildPartyComposition(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     expect(result.dealers).toHaveLength(3);
@@ -142,7 +142,7 @@ describe('buildPartyComposition', () => {
 
     const result = buildPartyComposition(
       { dealerSlots: 2, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 1, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     expect(result.dealers).toHaveLength(2);
@@ -159,7 +159,7 @@ describe('buildPartyComposition', () => {
 
     const result = buildPartyComposition(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
-      chars, damageMap, new Map(), [],
+      chars, damageMap, new Map(), [], new Map(),
     );
 
     expect(result.isComplete).toBe(false);
@@ -178,7 +178,7 @@ describe('buildPartyComposition', () => {
 
     const result = buildPartyComposition(
       { dealerSlots: 1, bufferSlots: 2, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     expect(result.dealers).toHaveLength(1);
@@ -198,7 +198,7 @@ describe('buildPartyComposition', () => {
 
     const result = buildPartyComposition(
       { dealerSlots: 1, bufferSlots: 1, secondaryBufferSlots: 1, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     expect(result.dealers).toHaveLength(1);
@@ -230,7 +230,7 @@ describe('buildMultipleParties', () => {
 
     const results = buildMultipleParties(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     expect(results).toHaveLength(2);
@@ -269,7 +269,7 @@ describe('buildMultipleParties', () => {
 
     const results = buildMultipleParties(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     expect(results).toHaveLength(2);
@@ -280,7 +280,7 @@ describe('buildMultipleParties', () => {
   it('딜러도 버퍼도 없으면 빈 배열을 반환한다', () => {
     const results = buildMultipleParties(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 0, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
-      [], new Map(), new Map(), [],
+      [], new Map(), new Map(), [], new Map(),
     );
 
     expect(results).toHaveLength(0);
@@ -302,7 +302,7 @@ describe('딜합벞교', () => {
 
     const result = buildPartyComposition(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     expect(result.dealers).toHaveLength(3);
@@ -325,7 +325,7 @@ describe('딜합벞교', () => {
 
     const result = buildPartyComposition(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 500, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     expect(result.isComplete).toBe(false);
@@ -345,7 +345,7 @@ describe('딜합벞교', () => {
 
     const result = buildPartyComposition(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: false, minTotalDamage: 0, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     expect(result.dealers).toHaveLength(3);
@@ -368,7 +368,7 @@ describe('딜합벞교', () => {
 
     const result = buildPartyComposition(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
 
     // 가장 딜이 낮은 조합: d4(100) + d3(150) + d2(200) = 450 >= 400
@@ -393,15 +393,45 @@ describe('딜합벞교', () => {
 
     const withTruncate = buildPartyComposition(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400, truncateOnesDigit: true },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
     expect(withTruncate.isComplete).toBe(false);
 
     const withoutTruncate = buildPartyComposition(
       { dealerSlots: 3, bufferSlots: 1, secondaryBufferSlots: 0, carrySlots: 0, minDealerDamage: 100, minPrimaryBuffPower: 0, minSecondaryBuffPower: 0, useTotalDamage: true, minTotalDamage: 400, truncateOnesDigit: false },
-      chars, damageMap, buffMap, [],
+      chars, damageMap, buffMap, [], new Map(),
     );
     expect(withoutTruncate.isComplete).toBe(true);
+  });
+});
+
+describe('역할 오버라이드 (배틀 크루세이더)', () => {
+  it('roleOverrideMap이 dealer면 진크루도 딜러로 분류된다', () => {
+    const chars = [
+      makeCharacter({ characterId: 'bc1', jobGrowName: '眞 크루세이더' }),
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+    ];
+    const damageMap = new Map([['cain:bc1', 500]]);
+    const buffMap = new Map([['cain:b1', 50000]]);
+    const overrideMap = new Map<string, 'dealer' | 'buffer'>([['cain:bc1', 'dealer']]);
+
+    const dealers = filterDealers(chars, damageMap, 0, [], overrideMap);
+    expect(dealers).toHaveLength(1);
+    expect(dealers[0].characterId).toBe('bc1');
+
+    const buffers = filterBuffers(chars, buffMap, 0, [], overrideMap);
+    expect(buffers).toHaveLength(1);
+    expect(buffers[0].characterId).toBe('b1');
+  });
+
+  it('오버라이드 없으면 이름 기반 분류로 폴백한다', () => {
+    const chars = [
+      makeCharacter({ characterId: 'b1', jobGrowName: '眞 크루세이더' }),
+    ];
+    const buffMap = new Map([['cain:b1', 50000]]);
+
+    const buffers = filterBuffers(chars, buffMap, 0, [], new Map());
+    expect(buffers).toHaveLength(1);
   });
 });
 

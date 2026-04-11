@@ -17,6 +17,8 @@ interface CharacterState {
   damageMap: Map<string, number>;
   /** 캐릭터별 버프력 수치 (사용자 수동 입력) */
   buffPowerMap: Map<string, number>;
+  /** 캐릭터별 역할 오버라이드 (배틀 크루세이더 등) */
+  roleOverrideMap: Map<string, 'dealer' | 'buffer'>;
   /** 주간 클리어 기록 */
   weeklyClearRecords: WeeklyClearRecord[];
   /** 로딩 상태 */
@@ -33,6 +35,8 @@ interface CharacterActions {
   removeCharacter: (serverId: string, characterId: string) => void;
   setDamage: (serverId: string, characterId: string, damage: number) => void;
   setBuffPower: (serverId: string, characterId: string, buffPower: number) => void;
+  setRoleOverride: (serverId: string, characterId: string, role: 'dealer' | 'buffer') => void;
+  clearRoleOverride: (serverId: string, characterId: string) => void;
   markCleared: (character: Character) => void;
   unmarkCleared: (serverId: string, characterId: string) => void;
   clearAllWeeklyRecords: () => void;
@@ -50,6 +54,7 @@ export const useCharacterStore = create<CharacterState & CharacterActions>(
     characters: [],
     damageMap: new Map(),
     buffPowerMap: new Map(),
+    roleOverrideMap: new Map(),
     weeklyClearRecords: [],
     isLoading: false,
     error: null,
@@ -60,7 +65,7 @@ export const useCharacterStore = create<CharacterState & CharacterActions>(
     },
 
     clearAdventure: () => {
-      set({ serverId: null, adventureName: null, characters: [], damageMap: new Map(), buffPowerMap: new Map() });
+      set({ serverId: null, adventureName: null, characters: [], damageMap: new Map(), buffPowerMap: new Map(), roleOverrideMap: new Map() });
       get().saveToStorage();
     },
 
@@ -106,6 +111,24 @@ export const useCharacterStore = create<CharacterState & CharacterActions>(
         const newMap = new Map(state.buffPowerMap);
         newMap.set(`${serverId}:${characterId}`, buffPower);
         return { buffPowerMap: newMap };
+      });
+      get().saveToStorage();
+    },
+
+    setRoleOverride: (serverId, characterId, role) => {
+      set((state) => {
+        const newMap = new Map(state.roleOverrideMap);
+        newMap.set(`${serverId}:${characterId}`, role);
+        return { roleOverrideMap: newMap };
+      });
+      get().saveToStorage();
+    },
+
+    clearRoleOverride: (serverId, characterId) => {
+      set((state) => {
+        const newMap = new Map(state.roleOverrideMap);
+        newMap.delete(`${serverId}:${characterId}`);
+        return { roleOverrideMap: newMap };
       });
       get().saveToStorage();
     },
@@ -167,6 +190,7 @@ export const useCharacterStore = create<CharacterState & CharacterActions>(
         characters: saved.characters ?? [],
         damageMap: new Map(Object.entries(saved.damageMap ?? {})),
         buffPowerMap: new Map(Object.entries(saved.buffPowerMap ?? {})),
+        roleOverrideMap: new Map(Object.entries(saved.roleOverrideMap ?? {})),
         weeklyClearRecords: saved.weeklyClearRecords ?? [],
       });
 
@@ -182,6 +206,7 @@ export const useCharacterStore = create<CharacterState & CharacterActions>(
         characters: state.characters,
         damageMap: Object.fromEntries(state.damageMap),
         buffPowerMap: Object.fromEntries(state.buffPowerMap),
+        roleOverrideMap: Object.fromEntries(state.roleOverrideMap),
         weeklyClearRecords: state.weeklyClearRecords,
       };
       storage.set(STORAGE_KEYS.ADVENTURE_CACHE, data);
@@ -196,5 +221,6 @@ interface StoredCharacterData {
   characters: Character[];
   damageMap: Record<string, number>;
   buffPowerMap: Record<string, number>;
+  roleOverrideMap?: Record<string, 'dealer' | 'buffer'>;
   weeklyClearRecords: WeeklyClearRecord[];
 }

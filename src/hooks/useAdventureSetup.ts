@@ -27,6 +27,8 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
   const setCharacters = useCharacterStore((state) => state.setCharacters);
   const setDamage = useCharacterStore((state) => state.setDamage);
   const setBuffPower = useCharacterStore((state) => state.setBuffPower);
+  const setRoleOverride = useCharacterStore((state) => state.setRoleOverride);
+  const clearRoleOverride = useCharacterStore((state) => state.clearRoleOverride);
 
   async function setupFromDundam(text: string): Promise<void> {
     setError(null);
@@ -97,7 +99,15 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
       const dundam = dundamMap.get(character.characterName);
       if (!dundam) continue;
 
-      if (isBufferJob(character.jobGrowName) && dundam.buffPower !== null) {
+      const nameIsBuffer = isBufferJob(character.jobGrowName);
+
+      if (nameIsBuffer && dundam.damage !== null && dundam.buffPower === null) {
+        // 배틀 크루세이더 케이스: 이름은 버퍼지만 던담이 딜만 보여줌
+        setRoleOverride(character.serverId, character.characterId, 'dealer');
+        setDamage(character.serverId, character.characterId, dundam.damage);
+      } else if (nameIsBuffer && dundam.buffPower !== null) {
+        // 일반 버퍼: 기존 오버라이드 제거 (재등록 케이스 대응)
+        clearRoleOverride(character.serverId, character.characterId);
         setBuffPower(character.serverId, character.characterId, Math.round(dundam.buffPower / 10000));
       } else if (dundam.damage !== null) {
         setDamage(character.serverId, character.characterId, dundam.damage);

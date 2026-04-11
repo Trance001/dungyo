@@ -1,4 +1,4 @@
-import { isBufferJob } from './character';
+import { getEffectiveRole } from './character';
 import type {
   BufferCharacter,
   Character,
@@ -21,10 +21,11 @@ export function filterDealers(
   damageMap: Map<string, number>,
   minDamage: number,
   clearedRecords: WeeklyClearRecord[],
+  roleOverrideMap: Map<string, 'dealer' | 'buffer'>,
 ): DealerCharacter[] {
   return characters
     .filter((c) => {
-      if (isBufferJob(c.jobGrowName)) return false;
+      if (getEffectiveRole(c, roleOverrideMap) !== 'dealer') return false;
       const damage = damageMap.get(characterKey(c));
       return (
         damage !== undefined &&
@@ -48,10 +49,11 @@ export function filterBuffers(
   buffPowerMap: Map<string, number>,
   minBuffPower: number,
   clearedRecords: WeeklyClearRecord[],
+  roleOverrideMap: Map<string, 'dealer' | 'buffer'>,
 ): BufferCharacter[] {
   return characters
     .filter((c) => {
-      if (!isBufferJob(c.jobGrowName)) return false;
+      if (getEffectiveRole(c, roleOverrideMap) !== 'buffer') return false;
       const buffPower = buffPowerMap.get(characterKey(c));
       return (
         buffPower !== undefined &&
@@ -137,6 +139,7 @@ export function buildPartyComposition(
   damageMap: Map<string, number>,
   buffPowerMap: Map<string, number>,
   clearedRecords: WeeklyClearRecord[],
+  roleOverrideMap: Map<string, 'dealer' | 'buffer'>,
 ): PartyComposition {
   // 1. 딜러 선별
   const dealerCandidates = filterDealers(
@@ -144,6 +147,7 @@ export function buildPartyComposition(
     damageMap,
     input.minDealerDamage,
     clearedRecords,
+    roleOverrideMap,
   );
   const selectedDealers = input.useTotalDamage
     ? selectDealersByTotalDamage(dealerCandidates, input.dealerSlots, input.minTotalDamage, input.truncateOnesDigit)
@@ -156,6 +160,7 @@ export function buildPartyComposition(
     buffPowerMap,
     input.minPrimaryBuffPower,
     clearedRecords,
+    roleOverrideMap,
   );
   const primaryBuffers = primaryBufferCandidates.slice(0, input.bufferSlots);
   for (const b of primaryBuffers) usedIds.add(characterKey(b));
@@ -168,6 +173,7 @@ export function buildPartyComposition(
       buffPowerMap,
       input.minSecondaryBuffPower,
       clearedRecords,
+      roleOverrideMap,
     );
     secondaryBuffers = secondaryCandidates.slice(0, input.secondaryBufferSlots);
     for (const b of secondaryBuffers) usedIds.add(characterKey(b));
@@ -243,6 +249,7 @@ export function buildMultipleParties(
   damageMap: Map<string, number>,
   buffPowerMap: Map<string, number>,
   clearedRecords: WeeklyClearRecord[],
+  roleOverrideMap: Map<string, 'dealer' | 'buffer'>,
 ): PartyComposition[] {
   const parties: PartyComposition[] = [];
   let remainingCharacters = [...characters];
@@ -254,6 +261,7 @@ export function buildMultipleParties(
       damageMap,
       buffPowerMap,
       clearedRecords,
+      roleOverrideMap,
     );
 
     // 딜러도 버퍼도 없으면 더 이상 파티 구성 불가

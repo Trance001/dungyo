@@ -1,14 +1,18 @@
 import { useState } from 'react';
 
 import { useCharacterStore } from '@/stores/character-store';
-import { buildMultipleParties } from '@/domain/party-builder';
+import { buildMultipleParties, characterKey } from '@/domain/party-builder';
+import { isBufferJob } from '@/domain/character';
 
+import type { Character } from '@/domain/character';
 import type { BufferExchangeInput, PartyComposition } from '@/domain/party';
 
 interface UsePartyCompositionReturn {
   partyResults: PartyComposition[];
   buildParty: (input: BufferExchangeInput) => void;
   clearResults: () => void;
+  addCarry: (partyIndex: number, character: Character) => void;
+  removeCarry: (partyIndex: number, serverId: string, characterId: string) => void;
 }
 
 export function usePartyComposition(): UsePartyCompositionReturn {
@@ -36,9 +40,52 @@ export function usePartyComposition(): UsePartyCompositionReturn {
     setPartyResults([]);
   }
 
+  function addCarry(partyIndex: number, character: Character): void {
+    setPartyResults((prev) => prev.map((party, idx) => {
+      if (idx !== partyIndex) return party;
+      const filled = party.carryDealers.length + party.carryBuffers.length;
+      if (filled >= party.carryCount) return party;
+
+      if (isBufferJob(character.jobGrowName)) {
+        const buffPower = buffPowerMap.get(characterKey(character)) ?? 0;
+        return {
+          ...party,
+          carryBuffers: [
+            ...party.carryBuffers,
+            { ...character, role: 'buffer' as const, buffPower },
+          ],
+        };
+      } else {
+        const damage = damageMap.get(characterKey(character)) ?? 0;
+        return {
+          ...party,
+          carryDealers: [
+            ...party.carryDealers,
+            { ...character, role: 'dealer' as const, damage },
+          ],
+        };
+      }
+    }));
+  }
+
+  function removeCarry(partyIndex: number, serverId: string, characterId: string): void {
+    setPartyResults((prev) => prev.map((party, idx) => {
+      if (idx !== partyIndex) return party;
+      const match = (c: { serverId: string; characterId: string }) =>
+        c.serverId === serverId && c.characterId === characterId;
+      return {
+        ...party,
+        carryDealers: party.carryDealers.filter((d) => !match(d)),
+        carryBuffers: party.carryBuffers.filter((b) => !match(b)),
+      };
+    }));
+  }
+
   return {
     partyResults,
     buildParty,
     clearResults,
+    addCarry,
+    removeCarry,
   };
 }

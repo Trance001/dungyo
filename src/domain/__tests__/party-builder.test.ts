@@ -404,3 +404,4 @@ describe('딜합벞교', () => {
     expect(withoutTruncate.isComplete).toBe(true);
   });
 });
+

@@ -173,7 +173,7 @@ export function buildPartyComposition(
     for (const b of secondaryBuffers) usedIds.add(characterKey(b));
   }
 
-  // 4. 부족한 슬롯 계산 (업둥은 머릿수만 채우므로 제외)
+  // 4. 부족한 슬롯 계산 (업둥은 UI에서 수동 추가)
   const missingSlots: MissingSlot[] = [];
   if (selectedDealers.length < input.dealerSlots) {
     missingSlots.push({
@@ -210,7 +210,6 @@ export function buildPartyComposition(
       requirement: `버프력 ${input.minSecondaryBuffPower.toLocaleString()}만 이상`,
     });
   }
-
   const slotConfig = {
     dealerSlots: input.dealerSlots,
     bufferSlots: input.bufferSlots,
@@ -225,6 +224,8 @@ export function buildPartyComposition(
     primaryBuffers,
     secondaryBuffers,
     carryCount: input.carrySlots,
+    carryDealers: [],
+    carryBuffers: [],
     isComplete: missingSlots.length === 0,
     missingSlots,
   };
@@ -262,11 +263,13 @@ export function buildMultipleParties(
     // 완전한 파티가 아니면 마지막 불완전 파티로 종료
     if (!result.isComplete) break;
 
-    // 선발된 딜러/버퍼를 남은 목록에서 제거 (업둥은 등록 캐릭터 사용 안 함)
+    // 선발된 딜러/버퍼 및 업둥 배정 캐릭터를 남은 목록에서 제거
     const usedIds = new Set<string>();
     for (const d of result.dealers) usedIds.add(characterKey(d));
     for (const b of result.primaryBuffers) usedIds.add(characterKey(b));
     for (const b of result.secondaryBuffers) usedIds.add(characterKey(b));
+    for (const d of result.carryDealers) usedIds.add(characterKey(d));
+    for (const b of result.carryBuffers) usedIds.add(characterKey(b));
 
     remainingCharacters = remainingCharacters.filter(
       (c) => !usedIds.has(characterKey(c)),

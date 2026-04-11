@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ import { usePresets } from '@/hooks/usePresets';
 import { PartyResult } from '@/components/features/PartyResult';
 import { CharacterManager } from '@/components/features/CharacterManager';
 import { AdventureSetupDialog } from '@/components/features/AdventureSetupDialog';
+import { AddCarryDialog } from '@/components/features/AddCarryDialog';
+import { characterKey } from '@/domain/party-builder';
 
 import type { BufferExchangeInput } from '@/domain/party';
 import type { Preset } from '@/domain/preset';
@@ -35,10 +37,29 @@ export function HomePage() {
   const [presetName, setPresetName] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
+  const [addCarryTargetIndex, setAddCarryTargetIndex] = useState<number | null>(null);
+
   const characters = useCharacterStore((state) => state.characters);
   const adventureName = useCharacterStore((state) => state.adventureName);
-  const { partyResults, buildParty } = usePartyComposition();
+  const { partyResults, buildParty, addCarry, removeCarry } = usePartyComposition();
   const { presets, savePreset, updatePreset, deletePreset } = usePresets();
+
+  const availableCarryCharacters = useMemo(() => {
+    const usedKeys = new Set<string>();
+    for (const party of partyResults) {
+      for (const d of party.dealers) usedKeys.add(characterKey(d));
+      for (const b of party.primaryBuffers) usedKeys.add(characterKey(b));
+      for (const b of party.secondaryBuffers) usedKeys.add(characterKey(b));
+      for (const d of party.carryDealers) usedKeys.add(characterKey(d));
+      for (const b of party.carryBuffers) usedKeys.add(characterKey(b));
+    }
+    return characters.filter((c) => !usedKeys.has(characterKey(c)));
+  }, [partyResults, characters]);
+
+  const addCarryTarget = addCarryTargetIndex !== null ? partyResults[addCarryTargetIndex] : null;
+  const remainingCarrySlots = addCarryTarget
+    ? addCarryTarget.carryCount - addCarryTarget.carryDealers.length - addCarryTarget.carryBuffers.length
+    : 0;
 
   const needSecondaryBuffer = Number(secondaryBufferSlots) > 0;
   const totalSlotSum = (Number(dealerSlots) || 0) + (Number(bufferSlots) || 0) + (Number(secondaryBufferSlots) || 0);
@@ -378,6 +399,8 @@ export function HomePage() {
                         key={index}
                         composition={result}
                         partyIndex={partyResults.length > 1 ? index : undefined}
+                        onOpenAddCarry={() => setAddCarryTargetIndex(index)}
+                        onRemoveCarry={(serverId, characterId) => removeCarry(index, serverId, characterId)}
                       />
                     ))}
                   </>
@@ -399,6 +422,18 @@ export function HomePage() {
 
         </Tabs>
       </main>
+
+      <AddCarryDialog
+        open={addCarryTargetIndex !== null}
+        onClose={() => setAddCarryTargetIndex(null)}
+        availableCharacters={availableCarryCharacters}
+        onAdd={(character) => {
+          if (addCarryTargetIndex !== null) {
+            addCarry(addCarryTargetIndex, character);
+          }
+        }}
+        remainingSlots={remainingCarrySlots}
+      />
     </div>
   );
 }

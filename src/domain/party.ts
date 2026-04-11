@@ -21,6 +21,10 @@ export interface PartyComposition {
   secondaryBuffers: BufferCharacter[];
   /** 업둥 슬롯 수 (머릿수만 채움) */
   carryCount: number;
+  /** 업둥으로 배정된 딜러 (수동 추가) */
+  carryDealers: DealerCharacter[];
+  /** 업둥으로 배정된 버퍼 (수동 추가) */
+  carryBuffers: BufferCharacter[];
   /** 구성 완성 여부 */
   isComplete: boolean;
   /** 부족한 슬롯 정보 */

@@ -16,6 +16,8 @@ import { useCharacterStore } from '@/stores/character-store';
 interface PartyResultProps {
   composition: PartyComposition;
   partyIndex?: number;
+  onOpenAddCarry?: () => void;
+  onRemoveCarry?: (serverId: string, characterId: string) => void;
 }
 
 function buildCompositionDescription(config: SlotConfig): string {
@@ -27,7 +29,7 @@ function buildCompositionDescription(config: SlotConfig): string {
   return parts.join(' + ');
 }
 
-export function PartyResult({ composition, partyIndex }: PartyResultProps) {
+export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveCarry }: PartyResultProps) {
   const description = buildCompositionDescription(composition.slotConfig);
   const markCleared = useCharacterStore((state) => state.markCleared);
   const unmarkCleared = useCharacterStore((state) => state.unmarkCleared);
@@ -150,14 +152,60 @@ export function PartyResult({ composition, partyIndex }: PartyResultProps) {
       {composition.carryCount > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              업둥 캐릭 {composition.carryCount}명
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">
+                업둥 ({composition.carryDealers.length + composition.carryBuffers.length}/{composition.carryCount})
+              </CardTitle>
+              {onOpenAddCarry && (composition.carryDealers.length + composition.carryBuffers.length) < composition.carryCount && (
+                <Button variant="outline" size="sm" onClick={onOpenAddCarry}>
+                  추가하기
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              모험단 내 아무 캐릭터로 머릿수를 채웁니다
-            </p>
+            {composition.carryDealers.length === 0 && composition.carryBuffers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                탈락된 캐릭터 중에서 &quot;추가하기&quot;로 업둥을 배정하세요
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {composition.carryDealers.map((dealer) => {
+                  const cleared = isAlreadyCleared(weeklyClearRecords, dealer.characterId, dealer.serverId);
+                  return (
+                    <CharacterSlotCard
+                      key={`carry-d-${dealer.serverId}:${dealer.characterId}`}
+                      character={dealer}
+                      stat={`딜: ${dealer.damage.toLocaleString()}억`}
+                      roleColor="text-orange-400"
+                      cleared={cleared}
+                      onToggleCleared={() => cleared
+                        ? unmarkCleared(dealer.serverId, dealer.characterId)
+                        : markCleared(dealer)
+                      }
+                      onRemove={onRemoveCarry ? () => onRemoveCarry(dealer.serverId, dealer.characterId) : undefined}
+                    />
+                  );
+                })}
+                {composition.carryBuffers.map((buffer) => {
+                  const cleared = isAlreadyCleared(weeklyClearRecords, buffer.characterId, buffer.serverId);
+                  return (
+                    <CharacterSlotCard
+                      key={`carry-b-${buffer.serverId}:${buffer.characterId}`}
+                      character={buffer}
+                      stat={`버프력: ${buffer.buffPower.toLocaleString()}만`}
+                      roleColor="text-sky-400"
+                      cleared={cleared}
+                      onToggleCleared={() => cleared
+                        ? unmarkCleared(buffer.serverId, buffer.characterId)
+                        : markCleared(buffer)
+                      }
+                      onRemove={onRemoveCarry ? () => onRemoveCarry(buffer.serverId, buffer.characterId) : undefined}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -192,6 +240,7 @@ interface CharacterSlotCardProps {
   roleColor: string;
   cleared: boolean;
   onToggleCleared: () => void;
+  onRemove?: () => void;
 }
 
 function CharacterSlotCard({
@@ -200,6 +249,7 @@ function CharacterSlotCard({
   roleColor,
   cleared,
   onToggleCleared,
+  onRemove,
 }: CharacterSlotCardProps) {
   const hasKey = hasValidCharacterId(character);
 
@@ -226,14 +276,25 @@ function CharacterSlotCard({
         </p>
         <p className={`text-xs font-medium ${roleColor}`}>{stat}</p>
       </div>
-      <Button
-        variant={cleared ? 'secondary' : 'outline'}
-        size="sm"
-        onClick={onToggleCleared}
-        className="shrink-0"
-      >
-        {cleared ? '완료' : '클리어'}
-      </Button>
+      <div className="flex flex-col gap-1 shrink-0">
+        <Button
+          variant={cleared ? 'secondary' : 'outline'}
+          size="sm"
+          onClick={onToggleCleared}
+        >
+          {cleared ? '완료' : '클리어'}
+        </Button>
+        {onRemove && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRemove}
+            className="text-destructive hover:text-destructive text-xs h-7"
+          >
+            빼기
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -71,6 +71,7 @@ export const STORAGE_KEYS = {
   ADVENTURE_CACHE: 'dnf_gyo_adventure_cache',
   PRESETS: 'dnf_gyo_presets',
   LAST_DUNDAM_SYNC: 'dnf_gyo_last_dundam_sync',
+  PLANNER_SESSION: 'dnf_gyo_planner_session',
 } as const;
 
 /** 던담 데이터 갱신 알림 임계값 (일) */

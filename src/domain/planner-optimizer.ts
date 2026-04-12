@@ -151,8 +151,9 @@ function bufferInverseScore(
     rankDiffSum += (dealerRank - buffRank) ** 2;
   }
 
-  // 낮은 값 = 좋은 역매칭 (양의 상관이면 높은 값)
-  return rankDiffSum;
+  // rankDiffSum이 클수록 역매칭(음의 상관)이 좋음
+  // combinedScore를 최소화하므로 부호 반전: 역매칭이 좋을수록 낮은 값
+  return -rankDiffSum;
 }
 
 /**

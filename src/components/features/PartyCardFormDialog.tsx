@@ -11,9 +11,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { validateCardForTemplate } from '@/domain/planner';
-import { DEALER_JOB_OPTIONS, BUFFER_JOB_OPTIONS } from '@/config/job-codes';
+import { DEALER_JOB_CATEGORIES, BUFFER_JOB_CATEGORIES } from '@/config/job-codes';
 
 import type { PartyCard, PartyCardCharacter, RotationTemplate } from '@/domain/planner';
+import type { JobCategory } from '@/config/job-codes';
 
 interface PartyCardFormDialogProps {
   open: boolean;
@@ -103,18 +104,18 @@ export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmi
   const sections: Array<{
     label: string;
     statLabel: string;
-    jobOptions: string[];
+    jobCategories: JobCategory[];
     list: CharForm[];
     setter: (v: CharForm[]) => void;
   }> = [];
   if (template.slotsPerPerson.buffer > 0) {
-    sections.push({ label: '버퍼', statLabel: '버프력 (만)', jobOptions: BUFFER_JOB_OPTIONS, list: buffers, setter: setBuffers });
+    sections.push({ label: '버퍼', statLabel: '버프력 (만)', jobCategories: BUFFER_JOB_CATEGORIES, list: buffers, setter: setBuffers });
   }
   if (template.slotsPerPerson.dealer > 0) {
-    sections.push({ label: '딜러', statLabel: '딜 (억)', jobOptions: DEALER_JOB_OPTIONS, list: dealers, setter: setDealers });
+    sections.push({ label: '딜러', statLabel: '딜 (억)', jobCategories: DEALER_JOB_CATEGORIES, list: dealers, setter: setDealers });
   }
   if (template.slotsPerPerson.secondaryBuffer > 0) {
-    sections.push({ label: '업둥버퍼', statLabel: '버프력 (만)', jobOptions: BUFFER_JOB_OPTIONS, list: secondaryBuffers, setter: setSecondaryBuffers });
+    sections.push({ label: '업둥버퍼', statLabel: '버프력 (만)', jobCategories: BUFFER_JOB_CATEGORIES, list: secondaryBuffers, setter: setSecondaryBuffers });
   }
 
   return (
@@ -152,8 +153,12 @@ export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmi
                       className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                     >
                       <option value="">직업 선택</option>
-                      {section.jobOptions.map((job) => (
-                        <option key={job} value={job}>{job}</option>
+                      {section.jobCategories.map((cat) => (
+                        <optgroup key={cat.category} label={cat.category}>
+                          {cat.jobs.map((job) => (
+                            <option key={`${cat.category}-${job.name}`} value={job.name}>{job.name}</option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
                     <Input

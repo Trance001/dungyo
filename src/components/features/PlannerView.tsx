@@ -10,14 +10,14 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { usePlannerStore } from '@/stores/planner-store';
-import { ROTATION_TEMPLATES, presetToTemplateId } from '@/domain/planner';
+import { presetToTemplate } from '@/domain/planner';
 import { buildPlannerAssignment } from '@/domain/planner-optimizer';
 import { usePresets } from '@/hooks/usePresets';
 import { PartyCardFormDialog } from '@/components/features/PartyCardFormDialog';
 import { PartyCardShareDialog } from '@/components/features/PartyCardShareDialog';
 import { PartyCardImportDialog } from '@/components/features/PartyCardImportDialog';
 
-import type { PartyCard, RotationRole, RotationTemplateId } from '@/domain/planner';
+import type { PartyCard, RotationRole, RotationTemplate } from '@/domain/planner';
 import type { Preset } from '@/domain/preset';
 
 const ROLE_LABEL: Record<RotationRole, string> = {
@@ -35,9 +35,9 @@ const ROLE_STYLE: Record<RotationRole, string> = {
 };
 
 export function PlannerView() {
-  const templateId = usePlannerStore((s) => s.templateId);
   const cards = usePlannerStore((s) => s.cards);
   const setTemplate = usePlannerStore((s) => s.setTemplate);
+  const getActiveTemplate = usePlannerStore((s) => s.getActiveTemplate);
   const addCard = usePlannerStore((s) => s.addCard);
   const removeCard = usePlannerStore((s) => s.removeCard);
   const moveCard = usePlannerStore((s) => s.moveCard);
@@ -48,9 +48,9 @@ export function PlannerView() {
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [shareCard, setShareCard] = useState<PartyCard | null>(null);
-  const [presetError, setPresetError] = useState<string | null>(null);
 
-  const template = ROTATION_TEMPLATES[templateId];
+  const template = getActiveTemplate();
+  const templateId = template.id;
   const isFull = cards.length === template.peopleCount;
   const isOver = cards.length > template.peopleCount;
 
@@ -59,23 +59,18 @@ export function PlannerView() {
     return buildPlannerAssignment(template, cards);
   }, [template, cards]);
 
-  function handleTemplateChange(newId: RotationTemplateId) {
+  function handleTemplateApply(newTemplate: RotationTemplate) {
     if (cards.length > 0) {
       const ok = window.confirm('템플릿을 변경하면 등록된 카드가 모두 삭제됩니다. 계속하시겠습니까?');
       if (!ok) return;
     }
-    setPresetError(null);
-    setTemplate(newId);
+    setTemplate(newTemplate);
   }
 
   function handlePresetSelect(preset: Preset) {
-    const matched = presetToTemplateId(preset);
-    if (!matched) {
-      setPresetError(`프리셋 "${preset.name}"에 맞는 로테이션 템플릿이 없습니다. (딜러 ${preset.dealerSlots}, 버퍼 ${preset.bufferSlots}, 업둥버퍼 ${preset.secondaryBufferSlots}, 인원 ${preset.totalMembers})`);
-      return;
-    }
-    setPresetError(null);
-    handleTemplateChange(matched);
+    const matched = presetToTemplate(preset);
+    if (!matched) return;
+    handleTemplateApply(matched);
   }
 
   return (
@@ -94,13 +89,22 @@ export function PlannerView() {
             <div className="space-y-2">
               <Label>저장된 프리셋</Label>
               <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
-                {presets.map((p) => (
+                {presets.map((p) => {
+                  const hasTemplate = presetToTemplate(p) !== null;
+                  return (
                   <div
                     key={p.id}
-                    className="rounded-lg border border-border bg-card p-2 cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
-                    onClick={() => handlePresetSelect(p)}
+                    className={`rounded-lg border p-2 transition-colors ${hasTemplate ? 'border-border bg-card cursor-pointer hover:border-primary/50 hover:bg-accent/50' : 'border-border/50 bg-muted/20 opacity-50 cursor-not-allowed'}`}
+                    onClick={() => hasTemplate && handlePresetSelect(p)}
                   >
-                    <p className="text-sm font-medium">{p.name}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">{p.name}</p>
+                      {hasTemplate ? (
+                        <span className="rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 text-xs">사용 가능</span>
+                      ) : (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">미지원</span>
+                      )}
+                    </div>
                     <div className="mt-1 flex flex-wrap gap-1">
                       <span className="rounded bg-muted px-1.5 py-0.5 text-xs">인원 {p.totalMembers}</span>
                       <span className="rounded bg-muted px-1.5 py-0.5 text-xs">딜러 {p.dealerSlots}</span>
@@ -110,13 +114,10 @@ export function PlannerView() {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
-          )}
-
-          {presetError && (
-            <p className="text-sm text-destructive">{presetError}</p>
           )}
 
           <div className="rounded-md border border-border bg-muted/30 p-3">
@@ -303,14 +304,14 @@ export function PlannerView() {
 
       <PartyCardFormDialog
         open={formOpen}
-        templateId={templateId}
+        template={template}
         onClose={() => setFormOpen(false)}
         onSubmit={addCard}
       />
 
       <PartyCardImportDialog
         open={importOpen}
-        currentTemplateId={templateId}
+        currentTemplate={template}
         onClose={() => setImportOpen(false)}
         onImport={addCard}
       />

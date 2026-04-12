@@ -10,13 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ROTATION_TEMPLATES } from '@/domain/planner';
-
-import type { PartyCard, PartyCardCharacter, RotationTemplateId } from '@/domain/planner';
+import type { PartyCard, PartyCardCharacter, RotationTemplate } from '@/domain/planner';
 
 interface PartyCardFormDialogProps {
   open: boolean;
-  templateId: RotationTemplateId;
+  template: RotationTemplate;
   onClose: () => void;
   onSubmit: (card: Omit<PartyCard, 'id'>) => void;
 }
@@ -34,8 +32,7 @@ function toCharacter(c: CharForm): PartyCardCharacter {
   };
 }
 
-export function PartyCardFormDialog({ open, templateId, onClose, onSubmit }: PartyCardFormDialogProps) {
-  const template = ROTATION_TEMPLATES[templateId];
+export function PartyCardFormDialog({ open, template, onClose, onSubmit }: PartyCardFormDialogProps) {
   const [ownerName, setOwnerName] = useState('');
   const [buffers, setBuffers] = useState<CharForm[]>(() => makeEmpty(template.slotsPerPerson.buffer));
   const [dealers, setDealers] = useState<CharForm[]>(() => makeEmpty(template.slotsPerPerson.dealer));

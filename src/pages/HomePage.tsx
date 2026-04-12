@@ -25,7 +25,7 @@ import { PresetImportDialog } from '@/components/features/PresetImportDialog';
 import { usePresetUrlHash } from '@/hooks/usePresetUrlHash';
 import { characterKey } from '@/domain/party-builder';
 import { usePlannerStore } from '@/stores/planner-store';
-import { compositionToPartyCard, validateCardForTemplate, ROTATION_TEMPLATES } from '@/domain/planner';
+import { compositionToPartyCard, validateCardForTemplate } from '@/domain/planner';
 import { encodePartyCard } from '@/lib/party-card-codec';
 
 import type { BufferExchangeInput } from '@/domain/party';
@@ -53,7 +53,7 @@ export function HomePage() {
   const [plannerMessage, setPlannerMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { pendingCode, clearPendingCode } = usePresetUrlHash();
-  const plannerTemplateId = usePlannerStore((s) => s.templateId);
+  const plannerGetTemplate = usePlannerStore((s) => s.getActiveTemplate);
   const plannerCards = usePlannerStore((s) => s.cards);
   const plannerAddCard = usePlannerStore((s) => s.addCard);
 
@@ -153,17 +153,17 @@ export function HomePage() {
     const composition = partyResults[partyIndex];
     if (!composition || !composition.isComplete) return;
 
-    const template = ROTATION_TEMPLATES[plannerTemplateId];
+    const plannerTemplate = plannerGetTemplate();
     const card = compositionToPartyCard(composition, adventureName ?? '');
 
-    const validationError = validateCardForTemplate(card, template);
+    const validationError = validateCardForTemplate(card, plannerTemplate);
     if (validationError) {
       showPlannerMessage('error', validationError);
       return;
     }
 
-    if (plannerCards.length >= template.peopleCount) {
-      showPlannerMessage('error', `플래너가 이미 최대 인원(${template.peopleCount}명)입니다.`);
+    if (plannerCards.length >= plannerTemplate.peopleCount) {
+      showPlannerMessage('error', `플래너가 이미 최대 인원(${plannerTemplate.peopleCount}명)입니다.`);
       return;
     }
 
@@ -176,7 +176,7 @@ export function HomePage() {
     if (!composition || !composition.isComplete) return;
 
     const card = compositionToPartyCard(composition, adventureName ?? '');
-    const code = encodePartyCard(card, plannerTemplateId);
+    const code = encodePartyCard(card, plannerGetTemplate().id);
     try {
       await navigator.clipboard.writeText(code);
       showPlannerMessage('success', '플래너 카드 코드가 복사되었습니다.');

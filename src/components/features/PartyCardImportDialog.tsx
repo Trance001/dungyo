@@ -10,23 +10,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { decodePartyCard } from '@/lib/party-card-codec';
-import { ROTATION_TEMPLATES, validateCardForTemplate } from '@/domain/planner';
+import { validateCardForTemplate } from '@/domain/planner';
 
-import type { PartyCard, RotationTemplateId } from '@/domain/planner';
+import type { PartyCard, RotationTemplate } from '@/domain/planner';
 
 interface PartyCardImportDialogProps {
   open: boolean;
-  currentTemplateId: RotationTemplateId;
+  currentTemplate: RotationTemplate;
   onClose: () => void;
   onImport: (card: Omit<PartyCard, 'id'>) => void;
 }
 
-export function PartyCardImportDialog({ open, currentTemplateId, onClose, onImport }: PartyCardImportDialogProps) {
+export function PartyCardImportDialog({ open, currentTemplate, onClose, onImport }: PartyCardImportDialogProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const decoded = code.trim() ? decodePartyCard(code) : null;
-  const currentTemplate = ROTATION_TEMPLATES[currentTemplateId];
   const validationError = decoded ? validateCardForTemplate(decoded.card, currentTemplate) : null;
 
   function handleClose() {

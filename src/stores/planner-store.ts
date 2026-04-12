@@ -3,15 +3,18 @@ import { create } from 'zustand';
 import { storage } from '@/services/storage';
 import { STORAGE_KEYS } from '@/config/constants';
 
-import type { PartyCard, RotationTemplateId } from '@/domain/planner';
+import type { PartyCard, RotationTemplate, RotationTemplateId } from '@/domain/planner';
+import { ROTATION_TEMPLATES } from '@/domain/planner';
 
 interface PlannerState {
   templateId: RotationTemplateId;
+  customTemplate: RotationTemplate | null;
   cards: PartyCard[];
 }
 
 interface PlannerActions {
-  setTemplate: (templateId: RotationTemplateId) => void;
+  setTemplate: (template: RotationTemplate) => void;
+  getActiveTemplate: () => RotationTemplate;
   addCard: (card: Omit<PartyCard, 'id'>) => void;
   removeCard: (id: string) => void;
   moveCard: (fromIndex: number, toIndex: number) => void;
@@ -22,9 +25,9 @@ interface PlannerActions {
 function loadInitialState(): PlannerState {
   const saved = storage.get<PlannerState>(STORAGE_KEYS.PLANNER_SESSION);
   if (saved && saved.templateId && Array.isArray(saved.cards)) {
-    return saved;
+    return { templateId: saved.templateId, customTemplate: saved.customTemplate ?? null, cards: saved.cards };
   }
-  return { templateId: 'party4_normal', cards: [] };
+  return { templateId: 'party4_normal', customTemplate: null, cards: [] };
 }
 
 function persist(state: PlannerState): void {
@@ -34,10 +37,20 @@ function persist(state: PlannerState): void {
 export const usePlannerStore = create<PlannerState & PlannerActions>((set, get) => ({
   ...loadInitialState(),
 
-  setTemplate: (templateId) => {
-    // 템플릿 변경 시 기존 카드는 유지하지 않음 (역할 구성이 다르므로)
-    set({ templateId, cards: [] });
+  setTemplate: (template) => {
+    const isStatic = template.id !== 'dynamic';
+    set({
+      templateId: template.id,
+      customTemplate: isStatic ? null : template,
+      cards: [],
+    });
     persist(get());
+  },
+
+  getActiveTemplate: () => {
+    const state = get();
+    if (state.customTemplate) return state.customTemplate;
+    return ROTATION_TEMPLATES[state.templateId] ?? ROTATION_TEMPLATES.party4_normal!;
   },
 
   addCard: (card) => {

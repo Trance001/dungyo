@@ -2,7 +2,7 @@
 export type RotationRole = 'buffer' | 'dealer' | 'secondaryBuffer' | 'carry';
 
 /** 로테이션 템플릿 ID */
-export type RotationTemplateId = 'party4_normal' | 'party4_1carry' | 'party4_2carry' | 'raid12_8carry' | 'raid12_2sb';
+export type RotationTemplateId = 'party4_normal' | 'party4_1carry' | 'party4_2carry' | 'raid12_8carry' | 'raid12_2sb' | 'dynamic';
 
 /** 로테이션 템플릿 정의 */
 export interface RotationTemplate {
@@ -142,7 +142,7 @@ const raid12_2sb: RotationTemplate = {
   ],
 };
 
-export const ROTATION_TEMPLATES: Record<RotationTemplateId, RotationTemplate> = {
+export const ROTATION_TEMPLATES: Partial<Record<RotationTemplateId, RotationTemplate>> = {
   party4_normal: party4Normal,
   party4_1carry: party4_1carry,
   party4_2carry: party4_2carry,
@@ -150,22 +150,87 @@ export const ROTATION_TEMPLATES: Record<RotationTemplateId, RotationTemplate> = 
   raid12_2sb,
 };
 
-/** 프리셋의 슬롯 구성에 맞는 로테이션 템플릿 ID를 찾는다. 업둥은 무시. 일치하는 템플릿이 없으면 null */
-export function presetToTemplateId(preset: {
+/**
+ * 버퍼 1개 파티에 대해 동적으로 로테이션 템플릿을 생성한다.
+ * 버퍼가 대각선으로 회전하고, 나머지 역할은 offset 기반 배정.
+ */
+export function generateRotationTemplate(
+  peopleCount: number,
+  dealerSlots: number,
+  secondaryBufferSlots: number,
+): RotationTemplate {
+  const carrySlots = Math.max(0, peopleCount - 1 - dealerSlots - secondaryBufferSlots);
+  const matrix: RotationRole[][] = [];
+
+  for (let m = 0; m < peopleCount; m++) {
+    const row: RotationRole[] = [];
+    for (let p = 0; p < peopleCount; p++) {
+      if (p === m) {
+        row.push('buffer');
+      } else {
+        const offset = (p - m + peopleCount) % peopleCount; // 1 ~ N-1
+        if (offset <= dealerSlots) {
+          row.push('dealer');
+        } else if (offset <= dealerSlots + secondaryBufferSlots) {
+          row.push('secondaryBuffer');
+        } else {
+          row.push('carry');
+        }
+      }
+    }
+    matrix.push(row);
+  }
+
+  const parts: string[] = [];
+  parts.push(`딜러 ${dealerSlots}`);
+  parts.push(`버퍼 1`);
+  if (secondaryBufferSlots > 0) parts.push(`업둥버퍼 ${secondaryBufferSlots}`);
+  if (carrySlots > 0) parts.push(`업둥 ${carrySlots}`);
+
+  return {
+    id: 'dynamic',
+    label: `${peopleCount}인 벞교 (${parts.join(' + ')})`,
+    description: `${peopleCount}명이 각자 버퍼 1명 + 딜러 ${dealerSlots}명${secondaryBufferSlots > 0 ? ` + 업둥버퍼 ${secondaryBufferSlots}명` : ''}${carrySlots > 0 ? ` + 업둥 ${carrySlots}명` : ''}을 가져와 ${peopleCount}판 진행`,
+    peopleCount,
+    matchesCount: peopleCount,
+    slotsPerPerson: { buffer: 1, dealer: dealerSlots, secondaryBuffer: secondaryBufferSlots, carry: carrySlots },
+    matrix,
+  };
+}
+
+/**
+ * 프리셋에 맞는 로테이션 템플릿을 반환한다.
+ * 1. 정적 템플릿에서 매칭 시도
+ * 2. 버퍼 1개인 경우 동적 생성
+ * 3. 둘 다 안 되면 null
+ */
+export function presetToTemplate(preset: {
   dealerSlots: number;
   bufferSlots: number;
   secondaryBufferSlots: number;
-}): RotationTemplateId | null {
-  for (const [id, template] of Object.entries(ROTATION_TEMPLATES)) {
+  totalMembers: number;
+}): RotationTemplate | null {
+  // 정적 템플릿 매칭
+  for (const template of Object.values(ROTATION_TEMPLATES)) {
     const s = template.slotsPerPerson;
     if (
       s.buffer === preset.bufferSlots &&
       s.dealer === preset.dealerSlots &&
       s.secondaryBuffer === preset.secondaryBufferSlots
     ) {
-      return id as RotationTemplateId;
+      return template;
     }
   }
+
+  // 버퍼 1개인 경우 동적 생성
+  if (preset.bufferSlots === 1 && preset.totalMembers >= 2) {
+    return generateRotationTemplate(
+      preset.totalMembers,
+      preset.dealerSlots,
+      preset.secondaryBufferSlots,
+    );
+  }
+
   return null;
 }
 

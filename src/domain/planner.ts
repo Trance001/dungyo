@@ -2,7 +2,7 @@
 export type RotationRole = 'buffer' | 'dealer' | 'secondaryBuffer' | 'carry';
 
 /** 로테이션 템플릿 ID */
-export type RotationTemplateId = 'party4_normal' | 'party4_1carry' | 'party4_2carry' | 'raid12_8carry';
+export type RotationTemplateId = 'party4_normal' | 'party4_1carry' | 'party4_2carry' | 'raid12_8carry' | 'raid12_2sb';
 
 /** 로테이션 템플릿 정의 */
 export interface RotationTemplate {
@@ -118,11 +118,36 @@ const raid12_8carry: RotationTemplate = {
   ],
 };
 
+/** 12인 2업둥버퍼 레이드: 주버퍼 1 + 딜러 3 + 업둥버퍼 2 + 업둥 6 */
+const raid12_2sb: RotationTemplate = {
+  id: 'raid12_2sb',
+  label: '12인 레이드 (3딜 1벞 2벞둥 6업)',
+  description: '12명이 각자 주버퍼 1 + 딜러 3 + 업둥버퍼 2 + 업둥 6을 가져와 12판 진행',
+  peopleCount: 12,
+  matchesCount: 12,
+  slotsPerPerson: { buffer: 1, dealer: 3, secondaryBuffer: 2, carry: 6 },
+  matrix: [
+    ['buffer', 'dealer', 'dealer', 'dealer', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry'],
+    ['dealer', 'buffer', 'dealer', 'dealer', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry'],
+    ['dealer', 'dealer', 'buffer', 'dealer', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry'],
+    ['dealer', 'dealer', 'dealer', 'buffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer'],
+    ['secondaryBuffer', 'carry', 'carry', 'carry', 'buffer', 'dealer', 'dealer', 'dealer', 'secondaryBuffer', 'carry', 'carry', 'carry'],
+    ['carry', 'secondaryBuffer', 'carry', 'carry', 'dealer', 'buffer', 'dealer', 'dealer', 'carry', 'secondaryBuffer', 'carry', 'carry'],
+    ['carry', 'carry', 'secondaryBuffer', 'carry', 'dealer', 'dealer', 'buffer', 'dealer', 'carry', 'carry', 'secondaryBuffer', 'carry'],
+    ['carry', 'carry', 'carry', 'secondaryBuffer', 'dealer', 'dealer', 'dealer', 'buffer', 'carry', 'carry', 'carry', 'secondaryBuffer'],
+    ['secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'buffer', 'dealer', 'dealer', 'dealer'],
+    ['carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'dealer', 'buffer', 'dealer', 'dealer'],
+    ['carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'dealer', 'dealer', 'buffer', 'dealer'],
+    ['carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'dealer', 'dealer', 'dealer', 'buffer'],
+  ],
+};
+
 export const ROTATION_TEMPLATES: Record<RotationTemplateId, RotationTemplate> = {
   party4_normal: party4Normal,
   party4_1carry: party4_1carry,
   party4_2carry: party4_2carry,
   raid12_8carry,
+  raid12_2sb,
 };
 
 /** 프리셋의 슬롯 구성에 맞는 로테이션 템플릿 ID를 찾는다. 업둥은 무시. 일치하는 템플릿이 없으면 null */

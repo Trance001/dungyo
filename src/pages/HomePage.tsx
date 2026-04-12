@@ -45,6 +45,7 @@ export function HomePage() {
   const [presetName, setPresetName] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
+  const [activeTab, setActiveTab] = useState('compose');
   const [addCarryTargetIndex, setAddCarryTargetIndex] = useState<number | null>(null);
   const [sharePreset, setSharePreset] = useState<Preset | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -54,8 +55,8 @@ export function HomePage() {
 
   const { pendingCode, clearPendingCode } = usePresetUrlHash();
   const plannerGetTemplate = usePlannerStore((s) => s.getActiveTemplate);
-  const plannerCards = usePlannerStore((s) => s.cards);
   const plannerAddCard = usePlannerStore((s) => s.addCard);
+  const plannerClearCards = usePlannerStore((s) => s.clearCards);
 
   // URL 해시로 전달된 프리셋 코드가 있으면 가져오기 다이얼로그 자동 오픈
   useEffect(() => {
@@ -162,13 +163,10 @@ export function HomePage() {
       return;
     }
 
-    if (plannerCards.length >= plannerTemplate.peopleCount) {
-      showPlannerMessage('error', `플래너가 이미 최대 인원(${plannerTemplate.peopleCount}명)입니다.`);
-      return;
-    }
-
+    plannerClearCards();
     plannerAddCard(card);
-    showPlannerMessage('success', `"${card.ownerName}" 카드가 플래너에 추가되었습니다.`);
+    setActiveTab('planner');
+    showPlannerMessage('success', `"${card.ownerName}" 카드가 플래너에 등록되었습니다.`);
   }
 
   async function handleCopyPlannerCode(partyIndex: number) {
@@ -236,7 +234,7 @@ export function HomePage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="compose">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="compose">파티 구성</TabsTrigger>
             <TabsTrigger value="characters">캐릭터 관리</TabsTrigger>

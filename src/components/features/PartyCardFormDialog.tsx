@@ -135,7 +135,7 @@ export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmi
             <Label htmlFor="owner">닉네임 (카드 소유자)</Label>
             <Input
               id="owner"
-              placeholder="예: 트랜스코어"
+              placeholder="모험단 명"
               value={ownerName}
               onChange={(e) => setOwnerName(e.target.value)}
             />

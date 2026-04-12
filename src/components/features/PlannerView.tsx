@@ -14,6 +14,8 @@ import { usePlannerStore } from '@/stores/planner-store';
 import { presetToTemplate, validateCardForTemplate } from '@/domain/planner';
 import { buildPlannerAssignment } from '@/domain/planner-optimizer';
 import { decodePartyCard } from '@/lib/party-card-codec';
+import { encodePreset } from '@/lib/preset-codec';
+import { buildPresetShareUrl } from '@/hooks/usePresetUrlHash';
 import { usePresets } from '@/hooks/usePresets';
 import { PartyCardFormDialog } from '@/components/features/PartyCardFormDialog';
 import { PartyCardShareDialog } from '@/components/features/PartyCardShareDialog';
@@ -52,6 +54,7 @@ export function PlannerView() {
   const [shareCard, setShareCard] = useState<PartyCard | null>(null);
   const [importCode, setImportCode] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
+  const [copiedTarget, setCopiedTarget] = useState<'code' | 'url' | null>(null);
 
   const template = getActiveTemplate();
   const templateId = template.id;
@@ -150,6 +153,49 @@ export function PlannerView() {
               {template.slotsPerPerson.carry > 0 && ` · 업둥 ${template.slotsPerPerson.carry}`}
             </p>
           </div>
+
+          {(() => {
+            const matchedPreset = presets.find((p) =>
+              p.bufferSlots === template.slotsPerPerson.buffer &&
+              p.dealerSlots === template.slotsPerPerson.dealer &&
+              p.secondaryBufferSlots === template.slotsPerPerson.secondaryBuffer,
+            );
+            if (!matchedPreset) return null;
+
+            const code = encodePreset({
+              name: matchedPreset.name,
+              totalMembers: matchedPreset.totalMembers,
+              dealerSlots: matchedPreset.dealerSlots,
+              bufferSlots: matchedPreset.bufferSlots,
+              secondaryBufferSlots: matchedPreset.secondaryBufferSlots,
+              minDealerDamage: matchedPreset.minDealerDamage,
+              minPrimaryBuffPower: matchedPreset.minPrimaryBuffPower,
+              minSecondaryBuffPower: matchedPreset.minSecondaryBuffPower,
+              useTotalDamage: matchedPreset.useTotalDamage,
+              minTotalDamage: matchedPreset.minTotalDamage,
+              truncateOnesDigit: matchedPreset.truncateOnesDigit,
+            });
+            const url = buildPresetShareUrl(code);
+
+            async function handleCopy(target: 'code' | 'url') {
+              try {
+                await navigator.clipboard.writeText(target === 'code' ? code : url);
+                setCopiedTarget(target);
+                setTimeout(() => setCopiedTarget(null), 2000);
+              } catch { /* 무시 */ }
+            }
+
+            return (
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" className="text-xs" onClick={() => handleCopy('code')}>
+                  {copiedTarget === 'code' ? '복사됨' : '프리셋 코드 복사'}
+                </Button>
+                <Button variant="ghost" size="sm" className="text-xs" onClick={() => handleCopy('url')}>
+                  {copiedTarget === 'url' ? '복사됨' : '프리셋 링크 복사'}
+                </Button>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 

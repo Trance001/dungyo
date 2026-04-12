@@ -9,13 +9,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { usePlannerStore } from '@/stores/planner-store';
 import { ROTATION_TEMPLATES, presetToTemplateId } from '@/domain/planner';
 import { buildPlannerAssignment } from '@/domain/planner-optimizer';
@@ -124,22 +117,6 @@ export function PlannerView() {
           {presetError && (
             <p className="text-sm text-destructive">{presetError}</p>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="template">템플릿 직접 선택</Label>
-            <Select value={templateId} onValueChange={(v) => handleTemplateChange(v as RotationTemplateId)}>
-              <SelectTrigger id="template">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(ROTATION_TEMPLATES).map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           <div className="rounded-md border border-border bg-muted/30 p-3">
             <p className="text-sm font-medium">{template.label}</p>

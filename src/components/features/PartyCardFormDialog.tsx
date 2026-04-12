@@ -4,13 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -153,21 +146,16 @@ export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmi
               <div className="space-y-2">
                 {section.list.map((c, idx) => (
                   <div key={idx} className="grid grid-cols-[1fr_100px] gap-2">
-                    <Select
+                    <select
                       value={c.jobGrowName}
-                      onValueChange={(v) => v && updateCharForm(section.list, section.setter, idx, 'jobGrowName', v)}
+                      onChange={(e) => updateCharForm(section.list, section.setter, idx, 'jobGrowName', e.target.value)}
+                      className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="직업 선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {section.jobOptions.map((job) => (
-                          <SelectItem key={job} value={job}>
-                            {job}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <option value="">직업 선택</option>
+                      {section.jobOptions.map((job) => (
+                        <option key={job} value={job}>{job}</option>
+                      ))}
+                    </select>
                     <Input
                       type="number"
                       placeholder={section.statLabel}

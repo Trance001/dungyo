@@ -225,55 +225,72 @@ export function PlannerView() {
         </CardContent>
       </Card>
 
-      {/* 로테이션 매트릭스 */}
+      {/* 로테이션 매트릭스 (테이블) */}
       {assignment && (
         <Card>
           <CardHeader>
             <CardTitle>파티 로테이션</CardTitle>
             <CardDescription>
-              각 열이 한 판(파티) 입니다. 딜러 합계 편차: {assignment.dealerStdDev.toFixed(1)}
+              행 = 모험단, 열 = 파티 기수. 딜러 합계 편차: {assignment.dealerStdDev.toFixed(1)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <div
-                className="grid gap-2"
-                style={{ gridTemplateColumns: `repeat(${template.matchesCount}, minmax(180px, 1fr))` }}
-              >
-                {assignment.matches.map((match, matchIdx) => (
-                  <div key={matchIdx} className="rounded-lg border border-border bg-card p-3">
-                    <div className="mb-2 text-center">
-                      <p className="text-xs font-semibold">판 {matchIdx + 1}</p>
-                      <p className="text-xs text-muted-foreground">
-                        딜합 {assignment.dealerSumPerMatch[matchIdx].toLocaleString()}
-                      </p>
-                    </div>
-                    <ul className="space-y-1">
-                      {match.map((slot, slotIdx) => (
-                        <li key={slotIdx} className="text-xs">
-                          <span className={`font-semibold ${ROLE_STYLE[slot.role]}`}>
-                            [{ROLE_LABEL[slot.role]}]
-                          </span>{' '}
-                          <span className="text-muted-foreground">{slot.ownerName}:</span>{' '}
-                          {slot.character ? (
-                            <span className={slot.role === 'carry' ? 'text-muted-foreground' : ''}>
-                              {slot.character.characterName}
-                              {slot.role !== 'carry' && slot.character.stat > 0 && (
-                                <span className="text-muted-foreground">
-                                  {' '}
-                                  ({slot.character.stat.toLocaleString()})
-                                </span>
-                              )}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr>
+                    <th className="sticky left-0 z-10 bg-background border border-border px-2 py-1.5 text-left font-semibold">
+                      모험단
+                    </th>
+                    {Array.from({ length: template.matchesCount }, (_, i) => (
+                      <th key={i} className="border border-border px-2 py-1.5 text-center font-semibold min-w-[100px]">
+                        <div>{i + 1}기</div>
+                        <div className="font-normal text-muted-foreground">
+                          딜합 {assignment.dealerSumPerMatch[i].toLocaleString()}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cards.map((card, personIdx) => (
+                    <tr key={card.id}>
+                      <td className="sticky left-0 z-10 bg-background border border-border px-2 py-1.5 font-medium whitespace-nowrap">
+                        {card.ownerName}
+                      </td>
+                      {Array.from({ length: template.matchesCount }, (_, matchIdx) => {
+                        const slot = assignment.matches[matchIdx][personIdx];
+                        const isCarry = slot.role === 'carry';
+                        return (
+                          <td
+                            key={matchIdx}
+                            className={`border border-border px-2 py-1.5 text-center ${isCarry ? 'bg-muted/30' : ''}`}
+                          >
+                            {isCarry ? (
+                              <span className="text-muted-foreground">[업둥]</span>
+                            ) : slot.character ? (
+                              <div className="space-y-0.5">
+                                <div className="font-semibold">
+                                  {slot.character.stat > 0 ? slot.character.stat.toLocaleString() : '—'}
+                                </div>
+                                <div className="text-muted-foreground truncate">
+                                  {slot.character.jobGrowName.replace(/^眞\s*/, '')}
+                                </div>
+                                <div className="truncate">{slot.character.characterName}</div>
+                                <div className={ROLE_STYLE[slot.role]}>
+                                  [{ROLE_LABEL[slot.role]}]
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>

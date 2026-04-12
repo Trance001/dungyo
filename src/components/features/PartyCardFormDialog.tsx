@@ -126,7 +126,10 @@ export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmi
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        className="sm:max-w-2xl max-h-[85vh] overflow-y-auto"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>{isEditMode ? '파티 카드 수정' : '파티 카드 추가'}</DialogTitle>
           <DialogDescription>

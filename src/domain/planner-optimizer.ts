@@ -19,158 +19,20 @@ export interface PlannerAssignment {
   bufferStdDev: number;
 }
 
-function permutations<T>(arr: T[]): T[][] {
-  if (arr.length <= 1) return [arr];
-  const result: T[][] = [];
-  for (let i = 0; i < arr.length; i++) {
-    const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
-    for (const p of permutations(rest)) {
-      result.push([arr[i], ...p]);
-    }
-  }
-  return result;
-}
-
 function stddev(values: number[]): number {
   if (values.length === 0) return 0;
   const avg = values.reduce((a, b) => a + b, 0) / values.length;
   return Math.sqrt(values.reduce((s, x) => s + (x - avg) ** 2, 0) / values.length);
 }
 
-function shuffleArray<T>(arr: T[]): T[] {
-  const result = [...arr];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
-
-/** 컬럼별 각 역할의 매치 인덱스 목록 */
-function buildColRoleMatches(
-  matrix: RotationRole[][],
-  peopleCount: number,
-  matchesCount: number,
-): Array<Record<RotationRole, number[]>> {
-  const result: Array<Record<RotationRole, number[]>> = [];
-  for (let col = 0; col < peopleCount; col++) {
-    const out: Record<RotationRole, number[]> = { buffer: [], dealer: [], secondaryBuffer: [], carry: [] };
-    for (let m = 0; m < matchesCount; m++) {
-      out[matrix[m][col]].push(m);
-    }
-    result.push(out);
-  }
-  return result;
-}
-
-/** 딜러 순열 최적화: 각 사람의 딜러를 매치에 배치하여 딜합 편차 최소화 */
-function optimizeDealerPermutations(
-  matrix: RotationRole[][],
-  orderedCards: PartyCard[],
-  peopleCount: number,
-  matchesCount: number,
-): { dealerOrder: number[][]; dealerSums: number[] } {
-  const colRoleMatches = buildColRoleMatches(matrix, peopleCount, matchesCount);
-  const dealerOrder: number[][] = orderedCards.map((c) => c.dealers.map((_, i) => i));
-
-  function computeSums(orders: number[][]): number[] {
-    const sums = new Array(matchesCount).fill(0);
-    for (let col = 0; col < peopleCount; col++) {
-      const dealerMatches = colRoleMatches[col].dealer;
-      for (let i = 0; i < dealerMatches.length; i++) {
-        const idx = orders[col][i];
-        if (idx !== undefined && orderedCards[col].dealers[idx]) {
-          sums[dealerMatches[i]] += orderedCards[col].dealers[idx].stat;
-        }
-      }
-    }
-    return sums;
-  }
-
-  let improved = true;
-  let iterations = 0;
-  while (improved && iterations < 50) {
-    improved = false;
-    iterations++;
-    for (let col = 0; col < peopleCount; col++) {
-      const current = dealerOrder[col];
-      if (current.length <= 1) continue;
-
-      let bestOrder = current;
-      let bestScore = stddev(computeSums(dealerOrder));
-
-      for (const perm of permutations(current)) {
-        dealerOrder[col] = perm;
-        const score = stddev(computeSums(dealerOrder));
-        if (score < bestScore - 1e-9) {
-          bestScore = score;
-          bestOrder = perm;
-          improved = true;
-        }
-      }
-      dealerOrder[col] = bestOrder;
-    }
-  }
-
-  return { dealerOrder, dealerSums: computeSums(dealerOrder) };
-}
-
-/** 버프력 역매칭 점수: 딜합이 높은 매치에 낮은 버프력이면 좋음 (음의 상관관계) */
-function bufferInverseScore(
-  matrix: RotationRole[][],
-  orderedCards: PartyCard[],
-  dealerSums: number[],
-  peopleCount: number,
-  matchesCount: number,
-): number {
-  // 각 컬럼의 버퍼 매치를 찾고 해당 매치의 딜합과 버프력을 수집
-  const pairs: Array<{ dealerSum: number; buffPower: number }> = [];
-  for (let col = 0; col < peopleCount; col++) {
-    for (let m = 0; m < matchesCount; m++) {
-      if (matrix[m][col] === 'buffer') {
-        const buff = orderedCards[col].buffers[0]?.stat ?? 0;
-        if (buff > 0) {
-          pairs.push({ dealerSum: dealerSums[m], buffPower: buff });
-        }
-        break;
-      }
-    }
-  }
-
-  if (pairs.length === 0) return 0;
-
-  // Spearman 순위 상관계수 근사: 딜합 순위와 버프력 순위의 상관
-  // 이상적으로는 -1 (완전 역매칭). 점수가 낮을수록 좋음
-  const sortedByDealer = [...pairs].sort((a, b) => a.dealerSum - b.dealerSum);
-  const sortedByBuff = [...pairs].sort((a, b) => a.buffPower - b.buffPower);
-
-  let rankDiffSum = 0;
-  for (const pair of pairs) {
-    const dealerRank = sortedByDealer.indexOf(pair);
-    const buffRank = sortedByBuff.indexOf(pair);
-    rankDiffSum += (dealerRank - buffRank) ** 2;
-  }
-
-  // rankDiffSum이 클수록 역매칭(음의 상관)이 좋음
-  // combinedScore를 최소화하므로 부호 반전: 역매칭이 좋을수록 낮은 값
-  return -rankDiffSum;
-}
-
-interface Candidate {
-  cards: PartyCard[];
-  dealerOrder: number[][];
-  dealerStdDev: number;
-  bufferInverse: number;
-}
-
 /**
- * 파티 로테이션 최적 배치 (2단계 최적화)
+ * 파티 로테이션 배치
  *
- * 1단계: 딜합 편차 최소화 - 다수의 컬럼 배치를 탐색하여 최소 딜합 편차 확보
- * 2단계: 버프 역매칭 - 딜합 편차가 동등한 후보 중에서 버프 역매칭이 가장 좋은 것 선택
- *
- * 4인(24 순열): 전수 탐색
- * 12인(12! 순열): 랜덤 리스타트 500회 + 인접 스왑 탐색
+ * 카드 등록 순서대로 컬럼 배치.
+ * 각 모험단의 딜러를 매치에 배정할 때:
+ * - 홀수 기수(1,3,5...): 딜 오름차순 (낮은 딜부터)
+ * - 짝수 기수(2,4,6...): 딜 내림차순 (높은 딜부터)
+ * 이렇게 하면 인접 기수 간 딜 합계가 자연스럽게 균형을 이룬다.
  */
 export function buildPlannerAssignment(
   template: RotationTemplate,
@@ -192,66 +54,54 @@ export function buildPlannerAssignment(
     });
   }
 
-  function evaluateOrder(orderedCards: PartyCard[]): Candidate {
-    const { dealerOrder, dealerSums } = optimizeDealerPermutations(matrix, orderedCards, peopleCount, matchesCount);
-    return {
-      cards: orderedCards,
-      dealerOrder,
-      dealerStdDev: stddev(dealerSums),
-      bufferInverse: bufferInverseScore(matrix, orderedCards, dealerSums, peopleCount, matchesCount),
-    };
+  // 컬럼별 역할-매치 인덱스
+  const colRoleMatches: Array<Record<RotationRole, number[]>> = [];
+  for (let col = 0; col < peopleCount; col++) {
+    const out: Record<RotationRole, number[]> = { buffer: [], dealer: [], secondaryBuffer: [], carry: [] };
+    for (let m = 0; m < matchesCount; m++) {
+      out[matrix[m][col]].push(m);
+    }
+    colRoleMatches.push(out);
   }
 
-  // 1단계: 후보 수집 (딜 편차 기준)
-  const candidates: Candidate[] = [];
+  // 각 모험단의 딜러 배정: 홀수 기수 오름차순, 짝수 기수 내림차순
+  const dealerOrder: number[][] = paddedCards.map((card, col) => {
+    const dealers = card.dealers;
+    if (dealers.length <= 1) return dealers.map((_, i) => i);
 
-  if (peopleCount <= 4) {
-    const indices = Array.from({ length: peopleCount }, (_, i) => i);
-    for (const perm of permutations(indices)) {
-      candidates.push(evaluateOrder(perm.map((i) => paddedCards[i])));
-    }
-  } else {
-    const RANDOM_STARTS = 500;
-    for (let start = 0; start < RANDOM_STARTS; start++) {
-      let currentCards = start === 0 ? [...paddedCards] : shuffleArray(paddedCards);
-      let current = evaluateOrder(currentCards);
+    const dealerMatches = colRoleMatches[col].dealer;
 
-      // 인접 스왑으로 딜 편차 국소 개선
-      let swapImproved = true;
-      while (swapImproved) {
-        swapImproved = false;
-        for (let i = 0; i < peopleCount; i++) {
-          for (let j = i + 1; j < peopleCount; j++) {
-            const swapped = [...current.cards];
-            [swapped[i], swapped[j]] = [swapped[j], swapped[i]];
-            const swapResult = evaluateOrder(swapped);
-            if (swapResult.dealerStdDev < current.dealerStdDev - 1e-9) {
-              current = swapResult;
-              swapImproved = true;
-            }
-          }
-        }
+    // 딜 기준 정렬된 인덱스 (오름차순)
+    const sortedAsc = dealers
+      .map((d, i) => ({ idx: i, stat: d.stat }))
+      .sort((a, b) => a.stat - b.stat)
+      .map((d) => d.idx);
+
+    // 딜 기준 정렬된 인덱스 (내림차순)
+    const sortedDesc = [...sortedAsc].reverse();
+
+    // 각 딜러 슬롯에 대해 해당 매치가 홀수/짝수인지에 따라 배정
+    const order = new Array<number>(dealerMatches.length);
+    let ascIdx = 0;
+    let descIdx = 0;
+
+    for (let i = 0; i < dealerMatches.length; i++) {
+      const matchNum = dealerMatches[i] + 1; // 1-based 기수
+      if (matchNum % 2 === 1) {
+        // 홀수 기수: 오름차순에서 순서대로
+        order[i] = sortedAsc[ascIdx % sortedAsc.length];
+        ascIdx++;
+      } else {
+        // 짝수 기수: 내림차순에서 순서대로
+        order[i] = sortedDesc[descIdx % sortedDesc.length];
+        descIdx++;
       }
-
-      candidates.push(current);
     }
-  }
 
-  // 2단계: 딜 편차 동등 후보 중 버프 역매칭 최선 선택
-  // 최소 딜 편차의 2% 이내인 후보를 "동등"으로 간주
-  const bestDealerSD = Math.min(...candidates.map((c) => c.dealerStdDev));
-  const threshold = bestDealerSD * 1.02 + 1; // 2% 또는 +1 여유
-  const eligible = candidates.filter((c) => c.dealerStdDev <= threshold);
+    return order;
+  });
 
-  // bufferInverse가 가장 낮은(= 역매칭이 가장 좋은) 후보 선택
-  eligible.sort((a, b) => a.bufferInverse - b.bufferInverse);
-  const best = eligible[0];
-
-  let bestCards = best.cards;
-  let bestDealerOrder = best.dealerOrder;
-
-  // 최종 매치 배치 생성
-  const colRoleMatches = buildColRoleMatches(matrix, peopleCount, matchesCount);
+  // 매치 배치 생성
   const matches: MatchSlot[][] = [];
   for (let m = 0; m < matchesCount; m++) {
     const slots: MatchSlot[] = [];
@@ -260,29 +110,30 @@ export function buildPlannerAssignment(
       let character: PartyCardCharacter | null = null;
 
       if (role === 'buffer') {
-        character = bestCards[col].buffers[0] ?? null;
+        character = paddedCards[col].buffers[0] ?? null;
       } else if (role === 'dealer') {
         const dealerMatches = colRoleMatches[col].dealer;
         const idx = dealerMatches.indexOf(m);
         if (idx >= 0) {
-          const dealerIdx = bestDealerOrder[col][idx];
-          character = bestCards[col].dealers[dealerIdx] ?? null;
+          const dealerIdx = dealerOrder[col][idx];
+          character = paddedCards[col].dealers[dealerIdx] ?? null;
         }
       } else if (role === 'secondaryBuffer') {
         const sbMatches = colRoleMatches[col].secondaryBuffer;
         const idx = sbMatches.indexOf(m);
         if (idx >= 0) {
-          character = bestCards[col].secondaryBuffers[idx] ?? null;
+          character = paddedCards[col].secondaryBuffers[idx] ?? null;
         }
       } else {
         character = null;
       }
 
-      slots.push({ role, ownerName: bestCards[col].ownerName, character });
+      slots.push({ role, ownerName: paddedCards[col].ownerName, character });
     }
     matches.push(slots);
   }
 
+  // 통계
   const dealerSumPerMatch: number[] = [];
   const bufferStatPerMatch: number[] = [];
   for (const match of matches) {

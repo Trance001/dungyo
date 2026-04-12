@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { decodePartyCard } from '@/lib/party-card-codec';
-import { ROTATION_TEMPLATES } from '@/domain/planner';
+import { ROTATION_TEMPLATES, validateCardForTemplate } from '@/domain/planner';
 
 import type { PartyCard, RotationTemplateId } from '@/domain/planner';
 
@@ -26,7 +26,8 @@ export function PartyCardImportDialog({ open, currentTemplateId, onClose, onImpo
   const [error, setError] = useState<string | null>(null);
 
   const decoded = code.trim() ? decodePartyCard(code) : null;
-  const templateMismatch = decoded !== null && decoded.templateId !== currentTemplateId;
+  const currentTemplate = ROTATION_TEMPLATES[currentTemplateId];
+  const validationError = decoded ? validateCardForTemplate(decoded.card, currentTemplate) : null;
 
   function handleClose() {
     setCode('');
@@ -40,8 +41,9 @@ export function PartyCardImportDialog({ open, currentTemplateId, onClose, onImpo
       setError('유효하지 않은 파티 카드 코드입니다.');
       return;
     }
-    if (result.templateId !== currentTemplateId) {
-      setError(`이 카드는 "${ROTATION_TEMPLATES[result.templateId]?.label ?? result.templateId}" 용입니다. 현재 선택된 템플릿과 맞지 않습니다.`);
+    const err = validateCardForTemplate(result.card, currentTemplate);
+    if (err) {
+      setError(err);
       return;
     }
     onImport(result.card);
@@ -73,24 +75,22 @@ export function PartyCardImportDialog({ open, currentTemplateId, onClose, onImpo
             />
           </div>
 
-          {decoded && !templateMismatch && (
+          {decoded && !validationError && (
             <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
               <p className="text-xs text-muted-foreground">미리보기</p>
               <p className="text-sm font-medium">{decoded.card.ownerName}</p>
               <p className="text-xs text-muted-foreground">
-                버퍼 {decoded.card.buffers.length} · 딜러 {decoded.card.dealers.length} · 업둥버퍼 {decoded.card.secondaryBuffers.length} · 업둥 {decoded.card.carries.length}
+                버퍼 {decoded.card.buffers.length} · 딜러 {decoded.card.dealers.length} · 업둥버퍼 {decoded.card.secondaryBuffers.length}
               </p>
             </div>
           )}
 
-          {templateMismatch && (
-            <p className="text-sm text-destructive">
-              이 카드는 &quot;{ROTATION_TEMPLATES[decoded!.templateId]?.label}&quot;용입니다. 현재 템플릿과 호환되지 않습니다.
-            </p>
+          {decoded && validationError && (
+            <p className="text-sm text-destructive">{validationError}</p>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button className="w-full" onClick={handleImport} disabled={!decoded || templateMismatch}>
+          <Button className="w-full" onClick={handleImport} disabled={!decoded || !!validationError}>
             리스트에 추가
           </Button>
         </div>

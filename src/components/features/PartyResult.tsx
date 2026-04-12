@@ -20,6 +20,7 @@ interface PartyResultProps {
   partyIndex?: number;
   onOpenAddCarry?: () => void;
   onRemoveCarry?: (serverId: string, characterId: string) => void;
+  onAddToPlanner?: () => void;
 }
 
 function buildCompositionDescription(config: SlotConfig): string {
@@ -31,7 +32,7 @@ function buildCompositionDescription(config: SlotConfig): string {
   return parts.join(' + ');
 }
 
-export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveCarry }: PartyResultProps) {
+export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveCarry, onAddToPlanner }: PartyResultProps) {
   const description = buildCompositionDescription(composition.slotConfig);
   const markCleared = useCharacterStore((state) => state.markCleared);
   const unmarkCleared = useCharacterStore((state) => state.unmarkCleared);
@@ -64,9 +65,16 @@ export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveC
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {composition.isComplete && (
-                <Button variant="outline" size="sm" onClick={handleCopy}>
-                  {copied ? '복사됨' : '복사'}
-                </Button>
+                <>
+                  <Button variant="outline" size="sm" onClick={handleCopy}>
+                    {copied ? '복사됨' : '복사'}
+                  </Button>
+                  {onAddToPlanner && (
+                    <Button variant="outline" size="sm" onClick={onAddToPlanner}>
+                      플래너
+                    </Button>
+                  )}
+                </>
               )}
               <Badge variant={composition.isComplete ? 'default' : 'destructive'}>
                 {composition.isComplete ? '구성 완료' : '인원 부족'}

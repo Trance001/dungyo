@@ -135,3 +135,62 @@ export function isCardValid(card: PartyCard, template: RotationTemplate): boolea
     card.carries.length === template.slotsPerPerson.carry
   );
 }
+
+/** 파티 카드와 템플릿의 불일치 사유를 반환한다. 정상이면 null */
+export function validateCardForTemplate(
+  card: Omit<PartyCard, 'id'>,
+  template: RotationTemplate,
+): string | null {
+  const mismatches: string[] = [];
+  if (card.buffers.length !== template.slotsPerPerson.buffer) {
+    mismatches.push(`버퍼 ${card.buffers.length}명 (필요 ${template.slotsPerPerson.buffer}명)`);
+  }
+  if (card.dealers.length !== template.slotsPerPerson.dealer) {
+    mismatches.push(`딜러 ${card.dealers.length}명 (필요 ${template.slotsPerPerson.dealer}명)`);
+  }
+  if (card.secondaryBuffers.length !== template.slotsPerPerson.secondaryBuffer) {
+    mismatches.push(`업둥버퍼 ${card.secondaryBuffers.length}명 (필요 ${template.slotsPerPerson.secondaryBuffer}명)`);
+  }
+  if (card.carries.length !== template.slotsPerPerson.carry) {
+    mismatches.push(`업둥 ${card.carries.length}명 (필요 ${template.slotsPerPerson.carry}명)`);
+  }
+  if (mismatches.length === 0) return null;
+  return `템플릿 "${template.label}"과 맞지 않습니다: ${mismatches.join(', ')}`;
+}
+
+/** PartyComposition을 PartyCard로 변환 */
+export function compositionToPartyCard(
+  composition: import('./party').PartyComposition,
+  ownerName: string,
+): Omit<PartyCard, 'id'> {
+  return {
+    ownerName,
+    buffers: composition.primaryBuffers.map((b) => ({
+      characterName: b.characterName,
+      jobGrowName: b.jobGrowName,
+      stat: b.buffPower,
+    })),
+    dealers: composition.dealers.map((d) => ({
+      characterName: d.characterName,
+      jobGrowName: d.jobGrowName,
+      stat: d.damage,
+    })),
+    secondaryBuffers: composition.secondaryBuffers.map((b) => ({
+      characterName: b.characterName,
+      jobGrowName: b.jobGrowName,
+      stat: b.buffPower,
+    })),
+    carries: [
+      ...composition.carryDealers.map((d) => ({
+        characterName: d.characterName,
+        jobGrowName: d.jobGrowName,
+        stat: 0,
+      })),
+      ...composition.carryBuffers.map((b) => ({
+        characterName: b.characterName,
+        jobGrowName: b.jobGrowName,
+        stat: 0,
+      })),
+    ],
+  };
+}

@@ -24,6 +24,8 @@ import { PresetShareDialog } from '@/components/features/PresetShareDialog';
 import { PresetImportDialog } from '@/components/features/PresetImportDialog';
 import { usePresetUrlHash } from '@/hooks/usePresetUrlHash';
 import { characterKey } from '@/domain/party-builder';
+import { usePlannerStore } from '@/stores/planner-store';
+import { compositionToPartyCard, validateCardForTemplate, ROTATION_TEMPLATES } from '@/domain/planner';
 
 import type { BufferExchangeInput } from '@/domain/party';
 import type { Preset } from '@/domain/preset';
@@ -47,7 +49,12 @@ export function HomePage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importInitialCode, setImportInitialCode] = useState<string | undefined>(undefined);
 
+  const [plannerMessage, setPlannerMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const { pendingCode, clearPendingCode } = usePresetUrlHash();
+  const plannerTemplateId = usePlannerStore((s) => s.templateId);
+  const plannerCards = usePlannerStore((s) => s.cards);
+  const plannerAddCard = usePlannerStore((s) => s.addCard);
 
   // URL 해시로 전달된 프리셋 코드가 있으면 가져오기 다이얼로그 자동 오픈
   useEffect(() => {
@@ -135,6 +142,33 @@ export function HomePage() {
   }
 
   const selectedPreset = presets.find((p) => p.id === selectedPresetId) ?? null;
+
+  function showPlannerMessage(type: 'success' | 'error', text: string) {
+    setPlannerMessage({ type, text });
+    setTimeout(() => setPlannerMessage(null), 3000);
+  }
+
+  function handleAddToPlanner(partyIndex: number) {
+    const composition = partyResults[partyIndex];
+    if (!composition || !composition.isComplete) return;
+
+    const template = ROTATION_TEMPLATES[plannerTemplateId];
+    const card = compositionToPartyCard(composition, adventureName ?? '');
+
+    const validationError = validateCardForTemplate(card, template);
+    if (validationError) {
+      showPlannerMessage('error', validationError);
+      return;
+    }
+
+    if (plannerCards.length >= template.peopleCount) {
+      showPlannerMessage('error', `플래너가 이미 최대 인원(${template.peopleCount}명)입니다.`);
+      return;
+    }
+
+    plannerAddCard(card);
+    showPlannerMessage('success', `"${card.ownerName}" 카드가 플래너에 추가되었습니다.`);
+  }
 
   function handleLoadPreset(preset: Preset) {
     setSelectedPresetId(preset.id);
@@ -459,6 +493,7 @@ export function HomePage() {
                         partyIndex={partyResults.length > 1 ? index : undefined}
                         onOpenAddCarry={() => setAddCarryTargetIndex(index)}
                         onRemoveCarry={(serverId, characterId) => removeCarry(index, serverId, characterId)}
+                        onAddToPlanner={() => handleAddToPlanner(index)}
                       />
                     ))}
                   </>
@@ -505,6 +540,17 @@ export function HomePage() {
         preset={sharePreset}
         onClose={() => setSharePreset(null)}
       />
+
+      {/* 플래너 메시지 */}
+      {plannerMessage && (
+        <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-lg px-4 py-2 text-sm shadow-lg ${
+          plannerMessage.type === 'success'
+            ? 'bg-emerald-600 text-white'
+            : 'bg-destructive text-destructive-foreground'
+        }`}>
+          {plannerMessage.text}
+        </div>
+      )}
 
       <PresetImportDialog
         open={importDialogOpen}

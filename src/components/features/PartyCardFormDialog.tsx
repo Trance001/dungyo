@@ -4,6 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -11,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { validateCardForTemplate } from '@/domain/planner';
+import { DEALER_JOB_OPTIONS, BUFFER_JOB_OPTIONS } from '@/config/job-codes';
 
 import type { PartyCard, PartyCardCharacter, RotationTemplate } from '@/domain/planner';
 
@@ -31,7 +39,7 @@ function makeEmpty(count: number): CharForm[] {
 
 function fromCharacters(chars: PartyCardCharacter[], expectedCount: number): CharForm[] {
   const forms = chars.map((c) => ({
-    jobGrowName: c.jobGrowName,
+    jobGrowName: c.jobGrowName.replace(/^眞\s*/, ''),
     stat: c.stat > 0 ? String(c.stat) : '',
   }));
   while (forms.length < expectedCount) {
@@ -102,17 +110,18 @@ export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmi
   const sections: Array<{
     label: string;
     statLabel: string;
+    jobOptions: string[];
     list: CharForm[];
     setter: (v: CharForm[]) => void;
   }> = [];
   if (template.slotsPerPerson.buffer > 0) {
-    sections.push({ label: '버퍼', statLabel: '버프력 (만)', list: buffers, setter: setBuffers });
+    sections.push({ label: '버퍼', statLabel: '버프력 (만)', jobOptions: BUFFER_JOB_OPTIONS, list: buffers, setter: setBuffers });
   }
   if (template.slotsPerPerson.dealer > 0) {
-    sections.push({ label: '딜러', statLabel: '딜 (억)', list: dealers, setter: setDealers });
+    sections.push({ label: '딜러', statLabel: '딜 (억)', jobOptions: DEALER_JOB_OPTIONS, list: dealers, setter: setDealers });
   }
   if (template.slotsPerPerson.secondaryBuffer > 0) {
-    sections.push({ label: '업둥버퍼', statLabel: '버프력 (만)', list: secondaryBuffers, setter: setSecondaryBuffers });
+    sections.push({ label: '업둥버퍼', statLabel: '버프력 (만)', jobOptions: BUFFER_JOB_OPTIONS, list: secondaryBuffers, setter: setSecondaryBuffers });
   }
 
   return (
@@ -141,11 +150,21 @@ export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmi
               <div className="space-y-2">
                 {section.list.map((c, idx) => (
                   <div key={idx} className="grid grid-cols-[1fr_100px] gap-2">
-                    <Input
-                      placeholder="직업명"
+                    <Select
                       value={c.jobGrowName}
-                      onChange={(e) => updateCharForm(section.list, section.setter, idx, 'jobGrowName', e.target.value)}
-                    />
+                      onValueChange={(v) => v && updateCharForm(section.list, section.setter, idx, 'jobGrowName', v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="직업 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {section.jobOptions.map((job) => (
+                          <SelectItem key={job} value={job}>
+                            {job}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Input
                       type="number"
                       placeholder={section.statLabel}

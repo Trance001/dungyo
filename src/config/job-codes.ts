@@ -48,3 +48,16 @@ export function jobCodeToName(code: number): string | null {
   const name = codeToName.get(code);
   return name ? `眞 ${name}` : null;
 }
+
+/** 버퍼 직업명 목록 (眞 제외) */
+const BUFFER_NAMES = new Set(['크루세이더', '인챈트리스', '뮤즈', '패러메딕']);
+
+/** 딜러 직업 목록 (한글 내림차순) */
+export const DEALER_JOB_OPTIONS: string[] = JOB_LIST
+  .filter((name) => !BUFFER_NAMES.has(name))
+  .sort((a, b) => b.localeCompare(a, 'ko'));
+
+/** 버퍼 직업 목록 (한글 내림차순) */
+export const BUFFER_JOB_OPTIONS: string[] = JOB_LIST
+  .filter((name) => BUFFER_NAMES.has(name))
+  .sort((a, b) => b.localeCompare(a, 'ko'));

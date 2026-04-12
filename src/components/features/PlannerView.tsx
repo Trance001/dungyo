@@ -208,7 +208,7 @@ export function PlannerView() {
           <CardHeader>
             <CardTitle>파티 로테이션</CardTitle>
             <CardDescription>
-              행 = 모험단, 열 = 파티 기수. 딜러 합계 편차: {assignment.dealerStdDev.toFixed(1)}
+              딜합 편차: {assignment.dealerStdDev.toFixed(1)} · 버프력 편차: {assignment.bufferStdDev.toFixed(1)} · 높은 딜합에 낮은 버프력 자동 매칭
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -237,6 +237,11 @@ export function PlannerView() {
                         <div className="text-xs font-normal text-muted-foreground">
                           딜합 {assignment.dealerSumPerMatch[matchIdx].toLocaleString()}
                         </div>
+                        {assignment.bufferStatPerMatch[matchIdx] > 0 && (
+                          <div className="text-xs font-normal text-blue-400">
+                            벞 {assignment.bufferStatPerMatch[matchIdx].toLocaleString()}
+                          </div>
+                        )}
                       </td>
                       {Array.from({ length: template.peopleCount }, (_, personIdx) => {
                         const slot = assignment.matches[matchIdx][personIdx];

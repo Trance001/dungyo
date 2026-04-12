@@ -155,11 +155,12 @@ export function HomePage() {
 
     // 파티 구성의 슬롯에 맞는 템플릿 자동 탐색
     const sc = composition.slotConfig;
+    const totalMembersVal = sc.dealerSlots + sc.bufferSlots + sc.secondaryBufferSlots + sc.carrySlots;
     const matchedTemplate = presetToTemplate({
       dealerSlots: sc.dealerSlots,
       bufferSlots: sc.bufferSlots,
       secondaryBufferSlots: sc.secondaryBufferSlots,
-      totalMembers: sc.dealerSlots + sc.bufferSlots + sc.secondaryBufferSlots + sc.carrySlots,
+      totalMembers: totalMembersVal,
     });
 
     if (!matchedTemplate) {
@@ -167,9 +168,32 @@ export function HomePage() {
       return;
     }
 
+    // 현재 조건과 일치하는 프리셋이 없으면 자동 저장
+    const hasMatchingPreset = presets.some((p) =>
+      p.dealerSlots === sc.dealerSlots &&
+      p.bufferSlots === sc.bufferSlots &&
+      p.secondaryBufferSlots === sc.secondaryBufferSlots &&
+      p.totalMembers === totalMembersVal,
+    );
+    if (!hasMatchingPreset) {
+      savePreset({
+        name: matchedTemplate.label,
+        totalMembers: totalMembersVal,
+        dealerSlots: sc.dealerSlots,
+        bufferSlots: sc.bufferSlots,
+        secondaryBufferSlots: sc.secondaryBufferSlots,
+        minDealerDamage: Number(minDamage) || 0,
+        minPrimaryBuffPower: Number(minPrimaryBuff) || 0,
+        minSecondaryBuffPower: Number(minSecondaryBuff) || 0,
+        useTotalDamage,
+        minTotalDamage: Number(minTotalDamage) || 0,
+        truncateOnesDigit,
+      });
+    }
+
     const card = compositionToPartyCard(composition, adventureName ?? '');
 
-    plannerSetTemplate(matchedTemplate); // 템플릿 설정 + 기존 카드 초기화
+    plannerSetTemplate(matchedTemplate);
     plannerAddCard(card);
     setActiveTab('planner');
     showPlannerMessage('success', `"${card.ownerName}" 카드가 플래너에 등록되었습니다.`);

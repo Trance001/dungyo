@@ -5,7 +5,6 @@ import type {
   RotationTemplate,
 } from './planner';
 
-/** 배치된 파티 결과 한 판의 슬롯 */
 export interface MatchSlot {
   role: RotationRole;
   ownerName: string;
@@ -13,7 +12,6 @@ export interface MatchSlot {
 }
 
 export interface PlannerAssignment {
-  /** matches[matchIdx][columnIdx] */
   matches: MatchSlot[][];
   dealerSumPerMatch: number[];
   bufferStatPerMatch: number[];
@@ -36,47 +34,46 @@ function permutations<T>(arr: T[]): T[][] {
 function stddev(values: number[]): number {
   if (values.length === 0) return 0;
   const avg = values.reduce((a, b) => a + b, 0) / values.length;
-  const variance = values.reduce((s, x) => s + (x - avg) ** 2, 0) / values.length;
-  return Math.sqrt(variance);
+  return Math.sqrt(values.reduce((s, x) => s + (x - avg) ** 2, 0) / values.length);
 }
 
-/** 각 컬럼의 버퍼 매치 인덱스를 찾는다 */
-function findBufferMatchPerColumn(matrix: RotationRole[][], peopleCount: number, matchesCount: number): number[] {
-  const result = new Array<number>(peopleCount).fill(-1);
-  for (let col = 0; col < peopleCount; col++) {
-    for (let m = 0; m < matchesCount; m++) {
-      if (matrix[m][col] === 'buffer') {
-        result[col] = m;
-        break;
-      }
-    }
+function shuffleArray<T>(arr: T[]): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
 }
 
-/**
- * 딜러 순열 최적화 (기존 로직)
- * orderedCards[col]의 딜러를 해당 컬럼의 dealer-match에 어떤 순서로 배치할지 결정
- */
-function optimizeDealerPermutations(
+/** 컬럼별 각 역할의 매치 인덱스 목록 */
+function buildColRoleMatches(
   matrix: RotationRole[][],
-  orderedCards: PartyCard[],
   peopleCount: number,
   matchesCount: number,
-): number[][] {
-  // 컬럼별 역할별 매치 인덱스
-  const colRoleMatches: Array<Record<RotationRole, number[]>> = [];
+): Array<Record<RotationRole, number[]>> {
+  const result: Array<Record<RotationRole, number[]>> = [];
   for (let col = 0; col < peopleCount; col++) {
     const out: Record<RotationRole, number[]> = { buffer: [], dealer: [], secondaryBuffer: [], carry: [] };
     for (let m = 0; m < matchesCount; m++) {
       out[matrix[m][col]].push(m);
     }
-    colRoleMatches.push(out);
+    result.push(out);
   }
+  return result;
+}
 
+/** 딜러 순열 최적화: 각 사람의 딜러를 매치에 배치하여 딜합 편차 최소화 */
+function optimizeDealerPermutations(
+  matrix: RotationRole[][],
+  orderedCards: PartyCard[],
+  peopleCount: number,
+  matchesCount: number,
+): { dealerOrder: number[][]; dealerSums: number[] } {
+  const colRoleMatches = buildColRoleMatches(matrix, peopleCount, matchesCount);
   const dealerOrder: number[][] = orderedCards.map((c) => c.dealers.map((_, i) => i));
 
-  function computeDealerSums(orders: number[][]): number[] {
+  function computeSums(orders: number[][]): number[] {
     const sums = new Array(matchesCount).fill(0);
     for (let col = 0; col < peopleCount; col++) {
       const dealerMatches = colRoleMatches[col].dealer;
@@ -100,11 +97,11 @@ function optimizeDealerPermutations(
       if (current.length <= 1) continue;
 
       let bestOrder = current;
-      let bestScore = stddev(computeDealerSums(dealerOrder));
+      let bestScore = stddev(computeSums(dealerOrder));
 
       for (const perm of permutations(current)) {
         dealerOrder[col] = perm;
-        const score = stddev(computeDealerSums(dealerOrder));
+        const score = stddev(computeSums(dealerOrder));
         if (score < bestScore - 1e-9) {
           bestScore = score;
           bestOrder = perm;
@@ -115,89 +112,64 @@ function optimizeDealerPermutations(
     }
   }
 
-  return dealerOrder;
+  return { dealerOrder, dealerSums: computeSums(dealerOrder) };
+}
+
+/** 버프력 역매칭 점수: 딜합이 높은 매치에 낮은 버프력이면 좋음 (음의 상관관계) */
+function bufferInverseScore(
+  matrix: RotationRole[][],
+  orderedCards: PartyCard[],
+  dealerSums: number[],
+  peopleCount: number,
+  matchesCount: number,
+): number {
+  // 각 컬럼의 버퍼 매치를 찾고 해당 매치의 딜합과 버프력을 수집
+  const pairs: Array<{ dealerSum: number; buffPower: number }> = [];
+  for (let col = 0; col < peopleCount; col++) {
+    for (let m = 0; m < matchesCount; m++) {
+      if (matrix[m][col] === 'buffer') {
+        const buff = orderedCards[col].buffers[0]?.stat ?? 0;
+        if (buff > 0) {
+          pairs.push({ dealerSum: dealerSums[m], buffPower: buff });
+        }
+        break;
+      }
+    }
+  }
+
+  if (pairs.length === 0) return 0;
+
+  // Spearman 순위 상관계수 근사: 딜합 순위와 버프력 순위의 상관
+  // 이상적으로는 -1 (완전 역매칭). 점수가 낮을수록 좋음
+  const sortedByDealer = [...pairs].sort((a, b) => a.dealerSum - b.dealerSum);
+  const sortedByBuff = [...pairs].sort((a, b) => a.buffPower - b.buffPower);
+
+  let rankDiffSum = 0;
+  for (const pair of pairs) {
+    const dealerRank = sortedByDealer.indexOf(pair);
+    const buffRank = sortedByBuff.indexOf(pair);
+    rankDiffSum += (dealerRank - buffRank) ** 2;
+  }
+
+  // 낮은 값 = 좋은 역매칭 (양의 상관이면 높은 값)
+  return rankDiffSum;
 }
 
 /**
- * 컬럼 배치 최적화: 딜합이 높은 매치에 버프력이 낮은 사람을 배치
- *
- * 순서:
- * 1. 현재 컬럼 순서로 딜러 최적화 → 매치별 딜합 계산
- * 2. 매치별 딜합과 사람별 버프력을 역매칭하여 컬럼 재배치
- * 3. 새 배치로 딜러 재최적화
- * 4. 수렴까지 반복
+ * 통합 점수: 딜 편차(1순위) + 버프 역매칭(2순위)
+ * 딜 편차를 정규화하여 가중치 적용
  */
-function optimizeColumnOrder(
-  matrix: RotationRole[][],
-  cards: PartyCard[],
-  peopleCount: number,
-  matchesCount: number,
-): PartyCard[] {
-  const bufferMatchPerCol = findBufferMatchPerColumn(matrix, peopleCount, matchesCount);
-  let currentOrder = [...cards];
-
-  for (let round = 0; round < 10; round++) {
-    // 딜러 최적화
-    const dealerOrder = optimizeDealerPermutations(matrix, currentOrder, peopleCount, matchesCount);
-
-    // 매치별 딜합 계산
-    const colRoleMatches: Array<Record<RotationRole, number[]>> = [];
-    for (let col = 0; col < peopleCount; col++) {
-      const out: Record<RotationRole, number[]> = { buffer: [], dealer: [], secondaryBuffer: [], carry: [] };
-      for (let m = 0; m < matchesCount; m++) {
-        out[matrix[m][col]].push(m);
-      }
-      colRoleMatches.push(out);
-    }
-
-    const dealerSums = new Array(matchesCount).fill(0);
-    for (let col = 0; col < peopleCount; col++) {
-      const dealerMatches = colRoleMatches[col].dealer;
-      for (let i = 0; i < dealerMatches.length; i++) {
-        const idx = dealerOrder[col][i];
-        if (idx !== undefined && currentOrder[col].dealers[idx]) {
-          dealerSums[dealerMatches[i]] += currentOrder[col].dealers[idx].stat;
-        }
-      }
-    }
-
-    // 각 컬럼의 버퍼 매치의 딜합을 기준으로 정렬 (오름차순)
-    const colIndices = Array.from({ length: peopleCount }, (_, i) => i);
-    colIndices.sort((a, b) => {
-      const matchA = bufferMatchPerCol[a];
-      const matchB = bufferMatchPerCol[b];
-      const sumA = matchA >= 0 ? dealerSums[matchA] : 0;
-      const sumB = matchB >= 0 ? dealerSums[matchB] : 0;
-      return sumA - sumB;
-    });
-
-    // 사람별 버프력 기준으로 정렬 (내림차순: 높은 버프 → 낮은 딜합 매치)
-    const personIndices = Array.from({ length: peopleCount }, (_, i) => i);
-    personIndices.sort((a, b) => {
-      const buffA = currentOrder[a].buffers[0]?.stat ?? 0;
-      const buffB = currentOrder[b].buffers[0]?.stat ?? 0;
-      return buffB - buffA;
-    });
-
-    // 재배치: 높은 버프 사람 → 낮은 딜합의 버퍼 매치를 가진 컬럼
-    const newOrder = new Array<PartyCard>(peopleCount);
-    for (let i = 0; i < peopleCount; i++) {
-      newOrder[colIndices[i]] = currentOrder[personIndices[i]];
-    }
-
-    // 수렴 체크
-    const same = newOrder.every((c, idx) => c.id === currentOrder[idx].id);
-    if (same) break;
-    currentOrder = newOrder;
-  }
-
-  return currentOrder;
+function combinedScore(dealerStdDev: number, bufferInverse: number): number {
+  return dealerStdDev * 1000 + bufferInverse;
 }
 
 /**
  * 파티 로테이션 최적 배치
- * 1단계: 컬럼 배치 최적화 (버프력 역매칭)
- * 2단계: 딜러 순열 최적화 (딜합 편차 최소화)
+ *
+ * 알고리즘:
+ * - 4인(24 순열): 전수 탐색
+ * - 12인(12! 순열): 랜덤 리스타트 300회 + 인접 스왑 탐색
+ * 각 컬럼 순서에 대해 딜러 순열 최적화 후 통합 점수(딜 편차 + 버프 역매칭) 계산
  */
 export function buildPlannerAssignment(
   template: RotationTemplate,
@@ -206,7 +178,7 @@ export function buildPlannerAssignment(
   const { matrix, peopleCount, matchesCount } = template;
   if (cards.length === 0) return null;
 
-  // 부분 등록 시 빈 카드로 패딩
+  // 빈 카드 패딩
   const paddedCards: PartyCard[] = [...cards];
   while (paddedCards.length < peopleCount) {
     paddedCards.push({
@@ -219,23 +191,69 @@ export function buildPlannerAssignment(
     });
   }
 
-  // 1단계: 컬럼 배치 최적화
-  const orderedCards = optimizeColumnOrder(matrix, paddedCards, peopleCount, matchesCount);
+  let bestCards: PartyCard[] = paddedCards;
+  let bestDealerOrder: number[][] = paddedCards.map((c) => c.dealers.map((_, i) => i));
+  let bestScore = Infinity;
 
-  // 2단계: 최종 딜러 순열 최적화
-  const dealerOrder = optimizeDealerPermutations(matrix, orderedCards, peopleCount, matchesCount);
+  function evaluateOrder(orderedCards: PartyCard[]): {
+    dealerOrder: number[][];
+    dealerSums: number[];
+    score: number;
+  } {
+    const { dealerOrder, dealerSums } = optimizeDealerPermutations(matrix, orderedCards, peopleCount, matchesCount);
+    const dStdDev = stddev(dealerSums);
+    const bInverse = bufferInverseScore(matrix, orderedCards, dealerSums, peopleCount, matchesCount);
+    return { dealerOrder, dealerSums, score: combinedScore(dStdDev, bInverse) };
+  }
 
-  // 컬럼별 역할-매치 인덱스
-  const colRoleMatches: Array<Record<RotationRole, number[]>> = [];
-  for (let col = 0; col < peopleCount; col++) {
-    const out: Record<RotationRole, number[]> = { buffer: [], dealer: [], secondaryBuffer: [], carry: [] };
-    for (let m = 0; m < matchesCount; m++) {
-      out[matrix[m][col]].push(m);
+  if (peopleCount <= 4) {
+    // 4인: 전수 탐색 (최대 24 순열)
+    const indices = Array.from({ length: peopleCount }, (_, i) => i);
+    for (const perm of permutations(indices)) {
+      const reordered = perm.map((i) => paddedCards[i]);
+      const result = evaluateOrder(reordered);
+      if (result.score < bestScore) {
+        bestScore = result.score;
+        bestCards = reordered;
+        bestDealerOrder = result.dealerOrder;
+      }
     }
-    colRoleMatches.push(out);
+  } else {
+    // 12인: 랜덤 리스타트 + 인접 스왑 개선
+    const RANDOM_STARTS = 300;
+
+    for (let start = 0; start < RANDOM_STARTS; start++) {
+      let currentCards = start === 0 ? [...paddedCards] : shuffleArray(paddedCards);
+      let currentResult = evaluateOrder(currentCards);
+
+      // 인접 스왑으로 국소 개선
+      let swapImproved = true;
+      while (swapImproved) {
+        swapImproved = false;
+        for (let i = 0; i < peopleCount; i++) {
+          for (let j = i + 1; j < peopleCount; j++) {
+            const swapped = [...currentCards];
+            [swapped[i], swapped[j]] = [swapped[j], swapped[i]];
+            const swapResult = evaluateOrder(swapped);
+            if (swapResult.score < currentResult.score - 1e-9) {
+              currentCards = swapped;
+              currentResult = swapResult;
+              swapImproved = true;
+            }
+          }
+        }
+      }
+
+      if (currentResult.score < bestScore) {
+        bestScore = currentResult.score;
+        bestCards = currentCards;
+        bestDealerOrder = currentResult.dealerOrder;
+      }
+    }
   }
 
   // 최종 매치 배치 생성
+  const colRoleMatches = buildColRoleMatches(matrix, peopleCount, matchesCount);
   const matches: MatchSlot[][] = [];
   for (let m = 0; m < matchesCount; m++) {
     const slots: MatchSlot[] = [];
@@ -244,30 +262,29 @@ export function buildPlannerAssignment(
       let character: PartyCardCharacter | null = null;
 
       if (role === 'buffer') {
-        character = orderedCards[col].buffers[0] ?? null;
+        character = bestCards[col].buffers[0] ?? null;
       } else if (role === 'dealer') {
         const dealerMatches = colRoleMatches[col].dealer;
         const idx = dealerMatches.indexOf(m);
         if (idx >= 0) {
-          const dealerIdx = dealerOrder[col][idx];
-          character = orderedCards[col].dealers[dealerIdx] ?? null;
+          const dealerIdx = bestDealerOrder[col][idx];
+          character = bestCards[col].dealers[dealerIdx] ?? null;
         }
       } else if (role === 'secondaryBuffer') {
         const sbMatches = colRoleMatches[col].secondaryBuffer;
         const idx = sbMatches.indexOf(m);
         if (idx >= 0) {
-          character = orderedCards[col].secondaryBuffers[idx] ?? null;
+          character = bestCards[col].secondaryBuffers[idx] ?? null;
         }
-      } else if (role === 'carry') {
-        character = null; // 업둥은 don't care
+      } else {
+        character = null;
       }
 
-      slots.push({ role, ownerName: orderedCards[col].ownerName, character });
+      slots.push({ role, ownerName: bestCards[col].ownerName, character });
     }
     matches.push(slots);
   }
 
-  // 통계 계산
   const dealerSumPerMatch: number[] = [];
   const bufferStatPerMatch: number[] = [];
   for (const match of matches) {

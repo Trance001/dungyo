@@ -30,9 +30,8 @@ export interface RotationTemplate {
 
 /** 파티 카드 - 한 사람이 가져오는 캐릭터 목록 */
 export interface PartyCardCharacter {
-  characterName: string;
   jobGrowName: string;
-  /** 딜러는 damage, 버퍼는 buffPower. 업둥은 0 가능 */
+  /** 딜러는 damage, 버퍼는 buffPower */
   stat: number;
 }
 
@@ -182,31 +181,17 @@ export function compositionToPartyCard(
   return {
     ownerName,
     buffers: composition.primaryBuffers.map((b) => ({
-      characterName: b.characterName,
       jobGrowName: b.jobGrowName,
       stat: b.buffPower,
     })),
     dealers: composition.dealers.map((d) => ({
-      characterName: d.characterName,
       jobGrowName: d.jobGrowName,
       stat: d.damage,
     })),
     secondaryBuffers: composition.secondaryBuffers.map((b) => ({
-      characterName: b.characterName,
       jobGrowName: b.jobGrowName,
       stat: b.buffPower,
     })),
-    carries: [
-      ...composition.carryDealers.map((d) => ({
-        characterName: d.characterName,
-        jobGrowName: d.jobGrowName,
-        stat: 0,
-      })),
-      ...composition.carryBuffers.map((b) => ({
-        characterName: b.characterName,
-        jobGrowName: b.jobGrowName,
-        stat: 0,
-      })),
-    ],
+    carries: [],
   };
 }

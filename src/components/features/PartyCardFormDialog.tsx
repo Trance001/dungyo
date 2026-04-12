@@ -21,15 +21,14 @@ interface PartyCardFormDialogProps {
   onSubmit: (card: Omit<PartyCard, 'id'>) => void;
 }
 
-type CharForm = { characterName: string; jobGrowName: string; stat: string };
+type CharForm = { jobGrowName: string; stat: string };
 
 function makeEmpty(count: number): CharForm[] {
-  return Array.from({ length: count }, () => ({ characterName: '', jobGrowName: '', stat: '' }));
+  return Array.from({ length: count }, () => ({ jobGrowName: '', stat: '' }));
 }
 
 function toCharacter(c: CharForm): PartyCardCharacter {
   return {
-    characterName: c.characterName.trim(),
     jobGrowName: c.jobGrowName.trim(),
     stat: Number(c.stat) || 0,
   };
@@ -119,14 +118,9 @@ export function PartyCardFormDialog({ open, templateId, onClose, onSubmit }: Par
               <Label>{section.label} ({section.list.length}명)</Label>
               <div className="space-y-2">
                 {section.list.map((c, idx) => (
-                  <div key={idx} className="grid grid-cols-[1fr_1fr_100px] gap-2">
+                  <div key={idx} className="grid grid-cols-[1fr_100px] gap-2">
                     <Input
-                      placeholder="캐릭터명"
-                      value={c.characterName}
-                      onChange={(e) => updateCharForm(section.list, section.setter, idx, 'characterName', e.target.value)}
-                    />
-                    <Input
-                      placeholder="직업명 (선택)"
+                      placeholder="직업명"
                       value={c.jobGrowName}
                       onChange={(e) => updateCharForm(section.list, section.setter, idx, 'jobGrowName', e.target.value)}
                     />
@@ -135,7 +129,6 @@ export function PartyCardFormDialog({ open, templateId, onClose, onSubmit }: Par
                       placeholder={section.statLabel}
                       value={c.stat}
                       onChange={(e) => updateCharForm(section.list, section.setter, idx, 'stat', e.target.value)}
-                      disabled={section.label === '업둥'}
                     />
                   </div>
                 ))}

@@ -256,7 +256,6 @@ export function PlannerView() {
                                 <div className="text-muted-foreground truncate">
                                   {slot.character.jobGrowName.replace(/^眞\s*/, '')}
                                 </div>
-                                <div className="truncate">{slot.character.characterName}</div>
                                 <div className={ROLE_STYLE[slot.role]}>
                                   [{ROLE_LABEL[slot.role]}]
                                 </div>

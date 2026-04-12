@@ -87,10 +87,8 @@ function decodeV4(raw: string): DecodedPartyCard | null {
 
     const jobCode = Number(jobRaw);
     const jobGrowName = (!isNaN(jobCode) && jobCodeToName(jobCode)) ? jobCodeToName(jobCode)! : jobRaw;
-    // 캐릭터 이름 없으므로 직업명에서 眞 제거한 이름 사용
-    const characterName = jobGrowName.replace(/^眞\s*/, '');
 
-    const char: PartyCardCharacter = { characterName, jobGrowName, stat };
+    const char: PartyCardCharacter = { jobGrowName, stat };
     if (role === 'b') buffers.push(char);
     else if (role === 'd') dealers.push(char);
     else if (role === 's') secondaryBuffers.push(char);
@@ -125,7 +123,6 @@ function decodeV3(raw: string): DecodedPartyCard | null {
     const jobGrowName = (!isNaN(jobCode) && jobCodeToName(jobCode)) ? jobCodeToName(jobCode)! : jobRaw;
 
     const char: PartyCardCharacter = {
-      characterName: parts[0],
       jobGrowName,
       stat: Number(parts[2]) || 0,
     };
@@ -143,7 +140,7 @@ function decodeV3(raw: string): DecodedPartyCard | null {
 // --- v1/v2 하위 호환 ---
 
 function expandChar(c: { n: string; j: string; s: number }): PartyCardCharacter {
-  return { characterName: c.n, jobGrowName: c.j, stat: c.s };
+  return { jobGrowName: c.j, stat: c.s };
 }
 
 function decodeV2(parsed: { o: string; b?: Array<{ n: string; j: string; s: number }>; dl?: Array<{ n: string; j: string; s: number }>; sb?: Array<{ n: string; j: string; s: number }> }): DecodedPartyCard | null {

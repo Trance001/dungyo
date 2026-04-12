@@ -40,6 +40,7 @@ export function PlannerView() {
   const setTemplate = usePlannerStore((s) => s.setTemplate);
   const addCard = usePlannerStore((s) => s.addCard);
   const removeCard = usePlannerStore((s) => s.removeCard);
+  const moveCard = usePlannerStore((s) => s.moveCard);
   const clearCards = usePlannerStore((s) => s.clearCards);
 
   const { presets } = usePresets();
@@ -177,7 +178,27 @@ export function PlannerView() {
                       {card.carries.length > 0 && ` · 업둥 ${card.carries.length}`}
                     </p>
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex flex-col">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-1 text-xs"
+                        disabled={idx === 0}
+                        onClick={() => moveCard(idx, idx - 1)}
+                      >
+                        ▲
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-1 text-xs"
+                        disabled={idx === cards.length - 1}
+                        onClick={() => moveCard(idx, idx + 1)}
+                      >
+                        ▼
+                      </Button>
+                    </div>
                     <Button variant="ghost" size="sm" onClick={() => setShareCard(card)}>
                       공유
                     </Button>

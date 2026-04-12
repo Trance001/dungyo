@@ -14,6 +14,7 @@ interface PlannerActions {
   setTemplate: (templateId: RotationTemplateId) => void;
   addCard: (card: Omit<PartyCard, 'id'>) => void;
   removeCard: (id: string) => void;
+  moveCard: (fromIndex: number, toIndex: number) => void;
   clearCards: () => void;
   loadFromStorage: () => void;
 }
@@ -47,6 +48,18 @@ export const usePlannerStore = create<PlannerState & PlannerActions>((set, get) 
 
   removeCard: (id) => {
     set((state) => ({ cards: state.cards.filter((c) => c.id !== id) }));
+    persist(get());
+  },
+
+  moveCard: (fromIndex, toIndex) => {
+    set((state) => {
+      if (fromIndex < 0 || fromIndex >= state.cards.length) return state;
+      if (toIndex < 0 || toIndex >= state.cards.length) return state;
+      const next = [...state.cards];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return { cards: next };
+    });
     persist(get());
   },
 

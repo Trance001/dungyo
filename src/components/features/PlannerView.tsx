@@ -17,13 +17,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePlannerStore } from '@/stores/planner-store';
-import { ROTATION_TEMPLATES } from '@/domain/planner';
+import { ROTATION_TEMPLATES, presetToTemplateId } from '@/domain/planner';
 import { buildPlannerAssignment } from '@/domain/planner-optimizer';
+import { usePresets } from '@/hooks/usePresets';
 import { PartyCardFormDialog } from '@/components/features/PartyCardFormDialog';
 import { PartyCardShareDialog } from '@/components/features/PartyCardShareDialog';
 import { PartyCardImportDialog } from '@/components/features/PartyCardImportDialog';
 
 import type { PartyCard, RotationRole, RotationTemplateId } from '@/domain/planner';
+import type { Preset } from '@/domain/preset';
 
 const ROLE_LABEL: Record<RotationRole, string> = {
   buffer: '벞',
@@ -47,9 +49,12 @@ export function PlannerView() {
   const removeCard = usePlannerStore((s) => s.removeCard);
   const clearCards = usePlannerStore((s) => s.clearCards);
 
+  const { presets } = usePresets();
+
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [shareCard, setShareCard] = useState<PartyCard | null>(null);
+  const [presetError, setPresetError] = useState<string | null>(null);
 
   const template = ROTATION_TEMPLATES[templateId];
   const isFull = cards.length === template.peopleCount;
@@ -65,7 +70,18 @@ export function PlannerView() {
       const ok = window.confirm('템플릿을 변경하면 등록된 카드가 모두 삭제됩니다. 계속하시겠습니까?');
       if (!ok) return;
     }
+    setPresetError(null);
     setTemplate(newId);
+  }
+
+  function handlePresetSelect(preset: Preset) {
+    const matched = presetToTemplateId(preset);
+    if (!matched) {
+      setPresetError(`프리셋 "${preset.name}"에 맞는 로테이션 템플릿이 없습니다. (딜러 ${preset.dealerSlots}, 버퍼 ${preset.bufferSlots}, 업둥버퍼 ${preset.secondaryBufferSlots}, 인원 ${preset.totalMembers})`);
+      return;
+    }
+    setPresetError(null);
+    handleTemplateChange(matched);
   }
 
   return (
@@ -75,12 +91,42 @@ export function PlannerView() {
         <CardHeader>
           <CardTitle>버퍼교환 조건 프리셋</CardTitle>
           <CardDescription>
-            파티장이 진행할 버퍼교환 종류를 선택하세요. 카드 추가 전에 설정해야 합니다.
+            저장된 프리셋을 선택하거나, 템플릿을 직접 선택하세요. 카드 추가 전에 설정해야 합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* 저장된 프리셋 */}
+          {presets.length > 0 && (
+            <div className="space-y-2">
+              <Label>저장된 프리셋</Label>
+              <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+                {presets.map((p) => (
+                  <div
+                    key={p.id}
+                    className="rounded-lg border border-border bg-card p-2 cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
+                    onClick={() => handlePresetSelect(p)}
+                  >
+                    <p className="text-sm font-medium">{p.name}</p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs">인원 {p.totalMembers}</span>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs">딜러 {p.dealerSlots}</span>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs">버퍼 {p.bufferSlots}</span>
+                      {p.secondaryBufferSlots > 0 && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">업둥버퍼 {p.secondaryBufferSlots}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {presetError && (
+            <p className="text-sm text-destructive">{presetError}</p>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="template">템플릿</Label>
+            <Label htmlFor="template">템플릿 직접 선택</Label>
             <Select value={templateId} onValueChange={(v) => handleTemplateChange(v as RotationTemplateId)}>
               <SelectTrigger id="template">
                 <SelectValue />
@@ -93,8 +139,12 @@ export function PlannerView() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">{template.description}</p>
-            <p className="text-xs text-muted-foreground">
+          </div>
+
+          <div className="rounded-md border border-border bg-muted/30 p-3">
+            <p className="text-sm font-medium">{template.label}</p>
+            <p className="text-xs text-muted-foreground mt-1">{template.description}</p>
+            <p className="text-xs text-muted-foreground mt-1">
               한 사람당 필요: 버퍼 {template.slotsPerPerson.buffer} · 딜러 {template.slotsPerPerson.dealer}
               {template.slotsPerPerson.secondaryBuffer > 0 && ` · 업둥버퍼 ${template.slotsPerPerson.secondaryBuffer}`}
               {template.slotsPerPerson.carry > 0 && ` · 업둥 ${template.slotsPerPerson.carry}`}

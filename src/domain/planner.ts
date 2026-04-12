@@ -126,6 +126,28 @@ export const ROTATION_TEMPLATES: Record<RotationTemplateId, RotationTemplate> = 
   raid12_8carry,
 };
 
+/** 프리셋의 슬롯 구성에 맞는 로테이션 템플릿 ID를 찾는다. 일치하는 템플릿이 없으면 null */
+export function presetToTemplateId(preset: {
+  dealerSlots: number;
+  bufferSlots: number;
+  secondaryBufferSlots: number;
+  totalMembers: number;
+}): RotationTemplateId | null {
+  const carrySlots = Math.max(0, preset.totalMembers - preset.dealerSlots - preset.bufferSlots - preset.secondaryBufferSlots);
+  for (const [id, template] of Object.entries(ROTATION_TEMPLATES)) {
+    const s = template.slotsPerPerson;
+    if (
+      s.buffer === preset.bufferSlots &&
+      s.dealer === preset.dealerSlots &&
+      s.secondaryBuffer === preset.secondaryBufferSlots &&
+      s.carry === carrySlots
+    ) {
+      return id as RotationTemplateId;
+    }
+  }
+  return null;
+}
+
 /** 한 사람이 각 역할에 정확한 수의 캐릭터를 가지고 있는지 검증 */
 export function isCardValid(card: PartyCard, template: RotationTemplate): boolean {
   return (

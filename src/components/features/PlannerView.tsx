@@ -217,32 +217,33 @@ export function PlannerView() {
                 <thead>
                   <tr>
                     <th className="sticky left-0 z-10 bg-background border border-border px-2 py-1.5 text-left font-semibold">
-                      모험단
+                      기수
                     </th>
-                    {Array.from({ length: template.matchesCount }, (_, i) => (
-                      <th key={i} className="border border-border px-2 py-1.5 text-center font-semibold min-w-[100px]">
-                        <div>{i + 1}기</div>
-                        <div className="font-normal text-muted-foreground">
-                          딜합 {assignment.dealerSumPerMatch[i].toLocaleString()}
-                        </div>
-                      </th>
-                    ))}
+                    {Array.from({ length: template.peopleCount }, (_, personIdx) => {
+                      const ownerName = assignment.matches[0]?.[personIdx]?.ownerName ?? `(미등록 ${personIdx + 1})`;
+                      return (
+                        <th key={personIdx} className="border border-border px-2 py-1.5 text-center font-semibold min-w-[100px]">
+                          {ownerName}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.from({ length: template.peopleCount }, (_, personIdx) => {
-                    const ownerName = assignment.matches[0]?.[personIdx]?.ownerName ?? `(미등록 ${personIdx + 1})`;
-                    return (
-                    <tr key={personIdx}>
+                  {Array.from({ length: template.matchesCount }, (_, matchIdx) => (
+                    <tr key={matchIdx}>
                       <td className="sticky left-0 z-10 bg-background border border-border px-2 py-1.5 font-medium whitespace-nowrap">
-                        {ownerName}
+                        <div>{matchIdx + 1}기</div>
+                        <div className="text-xs font-normal text-muted-foreground">
+                          딜합 {assignment.dealerSumPerMatch[matchIdx].toLocaleString()}
+                        </div>
                       </td>
-                      {Array.from({ length: template.matchesCount }, (_, matchIdx) => {
+                      {Array.from({ length: template.peopleCount }, (_, personIdx) => {
                         const slot = assignment.matches[matchIdx][personIdx];
                         const isCarry = slot.role === 'carry';
                         return (
                           <td
-                            key={matchIdx}
+                            key={personIdx}
                             className={`border border-border px-2 py-1.5 text-center ${isCarry ? 'bg-muted/30' : ''}`}
                           >
                             {isCarry ? (
@@ -267,8 +268,7 @@ export function PlannerView() {
                         );
                       })}
                     </tr>
-                    );
-                  })}
+                  ))}
                 </tbody>
               </table>
             </div>

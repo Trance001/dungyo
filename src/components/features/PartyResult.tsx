@@ -21,6 +21,7 @@ interface PartyResultProps {
   onOpenAddCarry?: () => void;
   onRemoveCarry?: (serverId: string, characterId: string) => void;
   onAddToPlanner?: () => void;
+  onCopyPlannerCode?: () => void;
 }
 
 function buildCompositionDescription(config: SlotConfig): string {
@@ -32,7 +33,7 @@ function buildCompositionDescription(config: SlotConfig): string {
   return parts.join(' + ');
 }
 
-export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveCarry, onAddToPlanner }: PartyResultProps) {
+export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveCarry, onAddToPlanner, onCopyPlannerCode }: PartyResultProps) {
   const description = buildCompositionDescription(composition.slotConfig);
   const markCleared = useCharacterStore((state) => state.markCleared);
   const unmarkCleared = useCharacterStore((state) => state.unmarkCleared);
@@ -72,6 +73,11 @@ export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveC
                   {onAddToPlanner && (
                     <Button variant="outline" size="sm" onClick={onAddToPlanner}>
                       플래너
+                    </Button>
+                  )}
+                  {onCopyPlannerCode && (
+                    <Button variant="outline" size="sm" onClick={onCopyPlannerCode}>
+                      카드코드
                     </Button>
                   )}
                 </>

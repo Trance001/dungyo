@@ -26,6 +26,7 @@ import { usePresetUrlHash } from '@/hooks/usePresetUrlHash';
 import { characterKey } from '@/domain/party-builder';
 import { usePlannerStore } from '@/stores/planner-store';
 import { compositionToPartyCard, validateCardForTemplate, ROTATION_TEMPLATES } from '@/domain/planner';
+import { encodePartyCard } from '@/lib/party-card-codec';
 
 import type { BufferExchangeInput } from '@/domain/party';
 import type { Preset } from '@/domain/preset';
@@ -168,6 +169,20 @@ export function HomePage() {
 
     plannerAddCard(card);
     showPlannerMessage('success', `"${card.ownerName}" 카드가 플래너에 추가되었습니다.`);
+  }
+
+  async function handleCopyPlannerCode(partyIndex: number) {
+    const composition = partyResults[partyIndex];
+    if (!composition || !composition.isComplete) return;
+
+    const card = compositionToPartyCard(composition, adventureName ?? '');
+    const code = encodePartyCard(card, plannerTemplateId);
+    try {
+      await navigator.clipboard.writeText(code);
+      showPlannerMessage('success', '플래너 카드 코드가 복사되었습니다.');
+    } catch {
+      // 무시
+    }
   }
 
   function handleLoadPreset(preset: Preset) {
@@ -494,6 +509,7 @@ export function HomePage() {
                         onOpenAddCarry={() => setAddCarryTargetIndex(index)}
                         onRemoveCarry={(serverId, characterId) => removeCarry(index, serverId, characterId)}
                         onAddToPlanner={() => handleAddToPlanner(index)}
+                        onCopyPlannerCode={() => handleCopyPlannerCode(index)}
                       />
                     ))}
                   </>

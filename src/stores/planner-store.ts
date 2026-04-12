@@ -16,6 +16,7 @@ interface PlannerActions {
   setTemplate: (template: RotationTemplate) => void;
   getActiveTemplate: () => RotationTemplate;
   addCard: (card: Omit<PartyCard, 'id'>) => void;
+  updateCard: (id: string, card: Omit<PartyCard, 'id'>) => void;
   removeCard: (id: string) => void;
   moveCard: (fromIndex: number, toIndex: number) => void;
   clearCards: () => void;
@@ -56,6 +57,13 @@ export const usePlannerStore = create<PlannerState & PlannerActions>((set, get) 
   addCard: (card) => {
     const newCard: PartyCard = { ...card, id: crypto.randomUUID() };
     set((state) => ({ cards: [...state.cards, newCard] }));
+    persist(get());
+  },
+
+  updateCard: (id, card) => {
+    set((state) => ({
+      cards: state.cards.map((c) => (c.id === id ? { ...card, id } : c)),
+    }));
     persist(get());
   },
 

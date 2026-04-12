@@ -39,6 +39,7 @@ export function PlannerView() {
   const setTemplate = usePlannerStore((s) => s.setTemplate);
   const getActiveTemplate = usePlannerStore((s) => s.getActiveTemplate);
   const addCard = usePlannerStore((s) => s.addCard);
+  const updateCard = usePlannerStore((s) => s.updateCard);
   const removeCard = usePlannerStore((s) => s.removeCard);
   const moveCard = usePlannerStore((s) => s.moveCard);
   const clearCards = usePlannerStore((s) => s.clearCards);
@@ -46,6 +47,7 @@ export function PlannerView() {
   const { presets } = usePresets();
 
   const [formOpen, setFormOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<PartyCard | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [shareCard, setShareCard] = useState<PartyCard | null>(null);
 
@@ -143,7 +145,7 @@ export function PlannerView() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setFormOpen(true)} disabled={isFull}>
+              <Button variant="outline" size="sm" onClick={() => { setEditingCard(null); setFormOpen(true); }} disabled={isFull}>
                 카드 추가
               </Button>
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} disabled={isFull}>
@@ -200,6 +202,9 @@ export function PlannerView() {
                         ▼
                       </Button>
                     </div>
+                    <Button variant="ghost" size="sm" onClick={() => { setEditingCard(card); setFormOpen(true); }}>
+                      수정
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => setShareCard(card)}>
                       공유
                     </Button>
@@ -305,8 +310,15 @@ export function PlannerView() {
       <PartyCardFormDialog
         open={formOpen}
         template={template}
-        onClose={() => setFormOpen(false)}
-        onSubmit={addCard}
+        editCard={editingCard}
+        onClose={() => { setFormOpen(false); setEditingCard(null); }}
+        onSubmit={(card) => {
+          if (editingCard) {
+            updateCard(editingCard.id, card);
+          } else {
+            addCard(card);
+          }
+        }}
       />
 
       <PartyCardImportDialog

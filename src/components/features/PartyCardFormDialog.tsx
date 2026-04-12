@@ -10,11 +10,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { validateCardForTemplate } from '@/domain/planner';
+
 import type { PartyCard, PartyCardCharacter, RotationTemplate } from '@/domain/planner';
 
 interface PartyCardFormDialogProps {
   open: boolean;
   template: RotationTemplate;
+  /** 수정 모드일 때 기존 카드 데이터 */
+  editCard?: PartyCard | null;
   onClose: () => void;
   onSubmit: (card: Omit<PartyCard, 'id'>) => void;
 }
@@ -25,6 +29,17 @@ function makeEmpty(count: number): CharForm[] {
   return Array.from({ length: count }, () => ({ jobGrowName: '', stat: '' }));
 }
 
+function fromCharacters(chars: PartyCardCharacter[], expectedCount: number): CharForm[] {
+  const forms = chars.map((c) => ({
+    jobGrowName: c.jobGrowName,
+    stat: c.stat > 0 ? String(c.stat) : '',
+  }));
+  while (forms.length < expectedCount) {
+    forms.push({ jobGrowName: '', stat: '' });
+  }
+  return forms.slice(0, expectedCount);
+}
+
 function toCharacter(c: CharForm): PartyCardCharacter {
   return {
     jobGrowName: c.jobGrowName.trim(),
@@ -32,23 +47,29 @@ function toCharacter(c: CharForm): PartyCardCharacter {
   };
 }
 
-export function PartyCardFormDialog({ open, template, onClose, onSubmit }: PartyCardFormDialogProps) {
+export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmit }: PartyCardFormDialogProps) {
   const [ownerName, setOwnerName] = useState('');
   const [buffers, setBuffers] = useState<CharForm[]>(() => makeEmpty(template.slotsPerPerson.buffer));
   const [dealers, setDealers] = useState<CharForm[]>(() => makeEmpty(template.slotsPerPerson.dealer));
   const [secondaryBuffers, setSecondaryBuffers] = useState<CharForm[]>(() => makeEmpty(template.slotsPerPerson.secondaryBuffer));
-  const [carries, setCarries] = useState<CharForm[]>(() => makeEmpty(template.slotsPerPerson.carry));
 
-  // 템플릿 변경 또는 다이얼로그 재오픈 시 폼 리셋
+  const isEditMode = editCard !== null && editCard !== undefined;
+
   useEffect(() => {
     if (open) {
-      setOwnerName('');
-      setBuffers(makeEmpty(template.slotsPerPerson.buffer));
-      setDealers(makeEmpty(template.slotsPerPerson.dealer));
-      setSecondaryBuffers(makeEmpty(template.slotsPerPerson.secondaryBuffer));
-      setCarries(makeEmpty(template.slotsPerPerson.carry));
+      if (editCard) {
+        setOwnerName(editCard.ownerName);
+        setBuffers(fromCharacters(editCard.buffers, template.slotsPerPerson.buffer));
+        setDealers(fromCharacters(editCard.dealers, template.slotsPerPerson.dealer));
+        setSecondaryBuffers(fromCharacters(editCard.secondaryBuffers, template.slotsPerPerson.secondaryBuffer));
+      } else {
+        setOwnerName('');
+        setBuffers(makeEmpty(template.slotsPerPerson.buffer));
+        setDealers(makeEmpty(template.slotsPerPerson.dealer));
+        setSecondaryBuffers(makeEmpty(template.slotsPerPerson.secondaryBuffer));
+      }
     }
-  }, [open, template]);
+  }, [open, template, editCard]);
 
   function updateCharForm(
     list: CharForm[],
@@ -61,15 +82,20 @@ export function PartyCardFormDialog({ open, template, onClose, onSubmit }: Party
     setter(next);
   }
 
+  const cardData: Omit<PartyCard, 'id'> = {
+    ownerName: ownerName.trim(),
+    buffers: buffers.map(toCharacter),
+    dealers: dealers.map(toCharacter),
+    secondaryBuffers: secondaryBuffers.map(toCharacter),
+    carries: [],
+  };
+
+  const validationError = ownerName.trim() ? validateCardForTemplate(cardData, template) : null;
+  const canSubmit = ownerName.trim() !== '' && validationError === null;
+
   function handleSubmit() {
-    if (!ownerName.trim()) return;
-    onSubmit({
-      ownerName: ownerName.trim(),
-      buffers: buffers.map(toCharacter),
-      dealers: dealers.map(toCharacter),
-      secondaryBuffers: secondaryBuffers.map(toCharacter),
-      carries: carries.map(toCharacter),
-    });
+    if (!canSubmit) return;
+    onSubmit(cardData);
     onClose();
   }
 
@@ -88,13 +114,12 @@ export function PartyCardFormDialog({ open, template, onClose, onSubmit }: Party
   if (template.slotsPerPerson.secondaryBuffer > 0) {
     sections.push({ label: '업둥버퍼', statLabel: '버프력 (만)', list: secondaryBuffers, setter: setSecondaryBuffers });
   }
-  // 업둥은 입력하지 않아도 됨 (don't care)
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>파티 카드 추가</DialogTitle>
+          <DialogTitle>{isEditMode ? '파티 카드 수정' : '파티 카드 추가'}</DialogTitle>
           <DialogDescription>
             {template.label} · {template.description}
           </DialogDescription>
@@ -133,8 +158,12 @@ export function PartyCardFormDialog({ open, template, onClose, onSubmit }: Party
             </div>
           ))}
 
-          <Button className="w-full" onClick={handleSubmit} disabled={!ownerName.trim()}>
-            카드 추가
+          {validationError && (
+            <p className="text-sm text-destructive">{validationError}</p>
+          )}
+
+          <Button className="w-full" onClick={handleSubmit} disabled={!canSubmit}>
+            {isEditMode ? '카드 수정' : '카드 추가'}
           </Button>
         </div>
       </DialogContent>

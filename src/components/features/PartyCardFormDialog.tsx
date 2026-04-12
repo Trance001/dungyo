@@ -92,9 +92,7 @@ export function PartyCardFormDialog({ open, templateId, onClose, onSubmit }: Par
   if (template.slotsPerPerson.secondaryBuffer > 0) {
     sections.push({ label: '업둥버퍼', statLabel: '버프력 (만)', list: secondaryBuffers, setter: setSecondaryBuffers });
   }
-  if (template.slotsPerPerson.carry > 0) {
-    sections.push({ label: '업둥', statLabel: '-', list: carries, setter: setCarries });
-  }
+  // 업둥은 입력하지 않아도 됨 (don't care)
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>

@@ -126,21 +126,18 @@ export const ROTATION_TEMPLATES: Record<RotationTemplateId, RotationTemplate> = 
   raid12_8carry,
 };
 
-/** 프리셋의 슬롯 구성에 맞는 로테이션 템플릿 ID를 찾는다. 일치하는 템플릿이 없으면 null */
+/** 프리셋의 슬롯 구성에 맞는 로테이션 템플릿 ID를 찾는다. 업둥은 무시. 일치하는 템플릿이 없으면 null */
 export function presetToTemplateId(preset: {
   dealerSlots: number;
   bufferSlots: number;
   secondaryBufferSlots: number;
-  totalMembers: number;
 }): RotationTemplateId | null {
-  const carrySlots = Math.max(0, preset.totalMembers - preset.dealerSlots - preset.bufferSlots - preset.secondaryBufferSlots);
   for (const [id, template] of Object.entries(ROTATION_TEMPLATES)) {
     const s = template.slotsPerPerson;
     if (
       s.buffer === preset.bufferSlots &&
       s.dealer === preset.dealerSlots &&
-      s.secondaryBuffer === preset.secondaryBufferSlots &&
-      s.carry === carrySlots
+      s.secondaryBuffer === preset.secondaryBufferSlots
     ) {
       return id as RotationTemplateId;
     }
@@ -148,13 +145,12 @@ export function presetToTemplateId(preset: {
   return null;
 }
 
-/** 한 사람이 각 역할에 정확한 수의 캐릭터를 가지고 있는지 검증 */
+/** 한 사람이 각 역할에 정확한 수의 캐릭터를 가지고 있는지 검증 (업둥은 무시) */
 export function isCardValid(card: PartyCard, template: RotationTemplate): boolean {
   return (
     card.buffers.length === template.slotsPerPerson.buffer &&
     card.dealers.length === template.slotsPerPerson.dealer &&
-    card.secondaryBuffers.length === template.slotsPerPerson.secondaryBuffer &&
-    card.carries.length === template.slotsPerPerson.carry
+    card.secondaryBuffers.length === template.slotsPerPerson.secondaryBuffer
   );
 }
 
@@ -173,9 +169,7 @@ export function validateCardForTemplate(
   if (card.secondaryBuffers.length !== template.slotsPerPerson.secondaryBuffer) {
     mismatches.push(`업둥버퍼 ${card.secondaryBuffers.length}명 (필요 ${template.slotsPerPerson.secondaryBuffer}명)`);
   }
-  if (card.carries.length !== template.slotsPerPerson.carry) {
-    mismatches.push(`업둥 ${card.carries.length}명 (필요 ${template.slotsPerPerson.carry}명)`);
-  }
+  // 업둥은 검증하지 않음 (don't care)
   if (mismatches.length === 0) return null;
   return `템플릿 "${template.label}"과 맞지 않습니다: ${mismatches.join(', ')}`;
 }

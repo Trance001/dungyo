@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
@@ -10,12 +11,12 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { usePlannerStore } from '@/stores/planner-store';
-import { presetToTemplate } from '@/domain/planner';
+import { presetToTemplate, validateCardForTemplate } from '@/domain/planner';
 import { buildPlannerAssignment } from '@/domain/planner-optimizer';
+import { decodePartyCard } from '@/lib/party-card-codec';
 import { usePresets } from '@/hooks/usePresets';
 import { PartyCardFormDialog } from '@/components/features/PartyCardFormDialog';
 import { PartyCardShareDialog } from '@/components/features/PartyCardShareDialog';
-import { PartyCardImportDialog } from '@/components/features/PartyCardImportDialog';
 
 import type { PartyCard, RotationRole, RotationTemplate } from '@/domain/planner';
 import type { Preset } from '@/domain/preset';
@@ -48,8 +49,9 @@ export function PlannerView() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<PartyCard | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
   const [shareCard, setShareCard] = useState<PartyCard | null>(null);
+  const [importCode, setImportCode] = useState('');
+  const [importError, setImportError] = useState<string | null>(null);
 
   const template = getActiveTemplate();
   const templateId = template.id;
@@ -67,6 +69,23 @@ export function PlannerView() {
       if (!ok) return;
     }
     setTemplate(newTemplate);
+  }
+
+  function handleImportCode() {
+    if (!importCode.trim()) return;
+    const result = decodePartyCard(importCode);
+    if (!result) {
+      setImportError('유효하지 않은 코드입니다.');
+      return;
+    }
+    const err = validateCardForTemplate(result.card, template);
+    if (err) {
+      setImportError(err);
+      return;
+    }
+    addCard(result.card);
+    setImportCode('');
+    setImportError(null);
   }
 
   function handlePresetSelect(preset: Preset) {
@@ -148,9 +167,6 @@ export function PlannerView() {
               <Button variant="outline" size="sm" onClick={() => { setEditingCard(null); setFormOpen(true); }} disabled={isFull}>
                 카드 추가
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} disabled={isFull}>
-                코드로 가져오기
-              </Button>
               {cards.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={clearCards} className="text-destructive hover:text-destructive">
                   전체 삭제
@@ -159,10 +175,30 @@ export function PlannerView() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {!isFull && (
+            <div className="space-y-1">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="파티 카드 코드 입력"
+                  value={importCode}
+                  onChange={(e) => { setImportCode(e.target.value); setImportError(null); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleImportCode()}
+                  className="flex-1 text-xs font-mono"
+                />
+                <Button variant="outline" size="sm" onClick={handleImportCode} disabled={!importCode.trim()} className="shrink-0">
+                  입력하기
+                </Button>
+              </div>
+              {importError && (
+                <p className="text-xs text-destructive">{importError}</p>
+              )}
+            </div>
+          )}
+
           {cards.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">
-              등록된 카드가 없습니다. &quot;카드 추가&quot; 또는 &quot;코드로 가져오기&quot;로 시작하세요.
+              등록된 카드가 없습니다. 카드 코드를 입력하거나 &quot;카드 추가&quot;로 시작하세요.
             </p>
           ) : (
             <div className="space-y-2">
@@ -319,13 +355,6 @@ export function PlannerView() {
             addCard(card);
           }
         }}
-      />
-
-      <PartyCardImportDialog
-        open={importOpen}
-        currentTemplate={template}
-        onClose={() => setImportOpen(false)}
-        onImport={addCard}
       />
 
       <PartyCardShareDialog

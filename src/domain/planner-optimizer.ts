@@ -58,7 +58,20 @@ export function buildPlannerAssignment(
   cards: PartyCard[],
 ): PlannerAssignment | null {
   const { matrix, peopleCount, matchesCount } = template;
-  if (cards.length !== peopleCount) return null;
+  if (cards.length === 0) return null;
+
+  // 부분 등록 시 빈 카드로 패딩
+  const paddedCards: PartyCard[] = [...cards];
+  while (paddedCards.length < peopleCount) {
+    paddedCards.push({
+      id: `_empty_${paddedCards.length}`,
+      ownerName: `(미등록 ${paddedCards.length + 1})`,
+      buffers: [],
+      dealers: [],
+      secondaryBuffers: [],
+      carries: [],
+    });
+  }
 
   // 사람별 각 역할의 매치 인덱스 목록
   const personRoleMatches: Array<Record<RotationRole, number[]>> = [];
@@ -72,7 +85,7 @@ export function buildPlannerAssignment(
 
   // 각 사람의 딜러 순서: [slotIdx → dealer 캐릭터 인덱스]
   // 초기값: 0, 1, 2, ...
-  const personDealerOrder: number[][] = cards.map((c) => c.dealers.map((_, i) => i));
+  const personDealerOrder: number[][] = paddedCards.map((c) => c.dealers.map((_, i) => i));
 
   function computeDealerSums(orders: number[][]): number[] {
     const sums = new Array(matchesCount).fill(0);
@@ -80,8 +93,8 @@ export function buildPlannerAssignment(
       const dealerMatches = personRoleMatches[p].dealer;
       for (let i = 0; i < dealerMatches.length; i++) {
         const dealerIdx = orders[p][i];
-        if (dealerIdx !== undefined && cards[p].dealers[dealerIdx]) {
-          sums[dealerMatches[i]] += cards[p].dealers[dealerIdx].stat;
+        if (dealerIdx !== undefined && paddedCards[p].dealers[dealerIdx]) {
+          sums[dealerMatches[i]] += paddedCards[p].dealers[dealerIdx].stat;
         }
       }
     }
@@ -128,29 +141,29 @@ export function buildPlannerAssignment(
       let character: PartyCardCharacter | null = null;
 
       if (role === 'buffer') {
-        character = cards[p].buffers[0] ?? null;
+        character = paddedCards[p].buffers[0] ?? null;
       } else if (role === 'dealer') {
         const dealerMatches = personRoleMatches[p].dealer;
         const idx = dealerMatches.indexOf(m);
         if (idx >= 0) {
           const dealerIdx = personDealerOrder[p][idx];
-          character = cards[p].dealers[dealerIdx] ?? null;
+          character = paddedCards[p].dealers[dealerIdx] ?? null;
         }
       } else if (role === 'secondaryBuffer') {
         const sbMatches = personRoleMatches[p].secondaryBuffer;
         const idx = sbMatches.indexOf(m);
         if (idx >= 0) {
-          character = cards[p].secondaryBuffers[idx] ?? null;
+          character = paddedCards[p].secondaryBuffers[idx] ?? null;
         }
       } else if (role === 'carry') {
         const carryMatches = personRoleMatches[p].carry;
         const idx = carryMatches.indexOf(m);
         if (idx >= 0) {
-          character = cards[p].carries[idx] ?? null;
+          character = paddedCards[p].carries[idx] ?? null;
         }
       }
 
-      slots.push({ role, ownerName: cards[p].ownerName, character });
+      slots.push({ role, ownerName: paddedCards[p].ownerName, character });
     }
     matches.push(slots);
   }

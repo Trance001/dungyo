@@ -61,9 +61,9 @@ export function PlannerView() {
   const isOver = cards.length > template.peopleCount;
 
   const assignment = useMemo(() => {
-    if (!isFull) return null;
+    if (cards.length === 0) return null;
     return buildPlannerAssignment(template, cards);
-  }, [template, cards, isFull]);
+  }, [template, cards]);
 
   function handleTemplateChange(newId: RotationTemplateId) {
     if (cards.length > 0) {
@@ -253,10 +253,12 @@ export function PlannerView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cards.map((card, personIdx) => (
-                    <tr key={card.id}>
+                  {Array.from({ length: template.peopleCount }, (_, personIdx) => {
+                    const ownerName = assignment.matches[0]?.[personIdx]?.ownerName ?? `(미등록 ${personIdx + 1})`;
+                    return (
+                    <tr key={personIdx}>
                       <td className="sticky left-0 z-10 bg-background border border-border px-2 py-1.5 font-medium whitespace-nowrap">
-                        {card.ownerName}
+                        {ownerName}
                       </td>
                       {Array.from({ length: template.matchesCount }, (_, matchIdx) => {
                         const slot = assignment.matches[matchIdx][personIdx];
@@ -288,7 +290,8 @@ export function PlannerView() {
                         );
                       })}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

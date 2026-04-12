@@ -1,25 +1,6 @@
+import { jobNameToCode, jobCodeToName } from '@/config/job-codes';
+
 import type { PartyCard, PartyCardCharacter, RotationTemplateId } from '@/domain/planner';
-
-/**
- * v2 압축 포맷 (키 축약 + 빈 배열 제거)
- * o: ownerName, b: buffers, dl: dealers, sb: secondaryBuffers
- * 각 캐릭터: n: name, j: job, s: stat
- * carries는 don't care이므로 생략
- */
-interface EncodedV2 {
-  v: 2;
-  o: string;
-  b?: Array<{ n: string; j: string; s: number }>;
-  dl?: Array<{ n: string; j: string; s: number }>;
-  sb?: Array<{ n: string; j: string; s: number }>;
-}
-
-/** v1 호환용 (기존 코드 디코딩) */
-interface EncodedV1 {
-  v: 1;
-  t: RotationTemplateId;
-  d: Omit<PartyCard, 'id'>;
-}
 
 function utf8ToBase64Url(str: string): string {
   const bytes = new TextEncoder().encode(str);
@@ -37,21 +18,48 @@ function base64UrlToUtf8(base64: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-function compactChar(c: PartyCardCharacter): { n: string; j: string; s: number } {
-  return { n: c.characterName, j: c.jobGrowName, s: c.stat };
+/**
+ * v3 파이프 구분 압축 포맷
+ * 형식: 3|소유자|역할:이름,직업코드,수치|역할:이름,직업코드,수치|...
+ * 역할: b=버퍼, d=딜러, s=업둥버퍼
+ * 직업코드: 숫자(매핑 있음) 또는 원본 직업명(매핑 없음)
+ */
+function encodeCharV3(role: string, c: PartyCardCharacter): string {
+  const jCode = jobNameToCode(c.jobGrowName);
+  const job = jCode !== null ? String(jCode) : c.jobGrowName;
+  return `${role}:${c.characterName},${job},${c.stat}`;
 }
 
-function expandChar(c: { n: string; j: string; s: number }): PartyCardCharacter {
-  return { characterName: c.n, jobGrowName: c.j, stat: c.s };
+function decodeCharV3(segment: string): { role: string; char: PartyCardCharacter } | null {
+  const colonIdx = segment.indexOf(':');
+  if (colonIdx < 1) return null;
+  const role = segment.slice(0, colonIdx);
+  const parts = segment.slice(colonIdx + 1).split(',');
+  if (parts.length < 3) return null;
+
+  const name = parts[0];
+  const jobRaw = parts[1];
+  const stat = Number(parts[2]) || 0;
+
+  // 직업: 숫자면 코드에서 복원, 아니면 원본
+  const jobCode = Number(jobRaw);
+  let jobGrowName: string;
+  if (!isNaN(jobCode) && jobCodeToName(jobCode)) {
+    jobGrowName = jobCodeToName(jobCode)!;
+  } else {
+    jobGrowName = jobRaw;
+  }
+
+  return { role, char: { characterName: name, jobGrowName, stat } };
 }
 
-/** 파티 카드를 압축 코드로 인코딩 (v2) */
+/** 파티 카드를 압축 코드로 인코딩 (v3) */
 export function encodePartyCard(card: Omit<PartyCard, 'id'>, _templateId: RotationTemplateId): string {
-  const payload: EncodedV2 = { v: 2, o: card.ownerName };
-  if (card.buffers.length > 0) payload.b = card.buffers.map(compactChar);
-  if (card.dealers.length > 0) payload.dl = card.dealers.map(compactChar);
-  if (card.secondaryBuffers.length > 0) payload.sb = card.secondaryBuffers.map(compactChar);
-  return utf8ToBase64Url(JSON.stringify(payload));
+  const parts = ['3', card.ownerName];
+  for (const c of card.buffers) parts.push(encodeCharV3('b', c));
+  for (const c of card.dealers) parts.push(encodeCharV3('d', c));
+  for (const c of card.secondaryBuffers) parts.push(encodeCharV3('s', c));
+  return utf8ToBase64Url(parts.join('|'));
 }
 
 export interface DecodedPartyCard {
@@ -59,30 +67,61 @@ export interface DecodedPartyCard {
   card: Omit<PartyCard, 'id'>;
 }
 
-/** 코드 디코딩 (v1/v2 호환). 실패 시 null */
+/** 코드 디코딩 (v1/v2/v3 호환). 실패 시 null */
 export function decodePartyCard(code: string): DecodedPartyCard | null {
   try {
     const trimmed = code.trim();
     if (!trimmed) return null;
-    const json = base64UrlToUtf8(trimmed);
-    const raw = JSON.parse(json);
+    const raw = base64UrlToUtf8(trimmed);
 
-    if (raw.v === 2) {
-      return decodeV2(raw as EncodedV2);
+    // v3: 파이프 구분 포맷 ("3|..." 으로 시작)
+    if (raw.startsWith('3|')) {
+      return decodeV3(raw);
     }
-    if (raw.v === 1) {
-      return decodeV1(raw as EncodedV1);
-    }
+
+    // v1/v2: JSON 포맷
+    const parsed = JSON.parse(raw);
+    if (parsed.v === 2) return decodeV2(parsed);
+    if (parsed.v === 1) return decodeV1(parsed);
     return null;
   } catch {
     return null;
   }
 }
 
-function decodeV2(parsed: EncodedV2): DecodedPartyCard | null {
+function decodeV3(raw: string): DecodedPartyCard | null {
+  const segments = raw.split('|');
+  if (segments.length < 2) return null;
+
+  const ownerName = segments[1];
+  const buffers: PartyCardCharacter[] = [];
+  const dealers: PartyCardCharacter[] = [];
+  const secondaryBuffers: PartyCardCharacter[] = [];
+
+  for (let i = 2; i < segments.length; i++) {
+    const decoded = decodeCharV3(segments[i]);
+    if (!decoded) continue;
+    if (decoded.role === 'b') buffers.push(decoded.char);
+    else if (decoded.role === 'd') dealers.push(decoded.char);
+    else if (decoded.role === 's') secondaryBuffers.push(decoded.char);
+  }
+
+  return {
+    templateId: 'party4_normal',
+    card: { ownerName, buffers, dealers, secondaryBuffers, carries: [] },
+  };
+}
+
+// --- v1/v2 하위 호환 ---
+
+function expandChar(c: { n: string; j: string; s: number }): PartyCardCharacter {
+  return { characterName: c.n, jobGrowName: c.j, stat: c.s };
+}
+
+function decodeV2(parsed: { o: string; b?: Array<{ n: string; j: string; s: number }>; dl?: Array<{ n: string; j: string; s: number }>; sb?: Array<{ n: string; j: string; s: number }> }): DecodedPartyCard | null {
   if (typeof parsed.o !== 'string') return null;
   return {
-    templateId: 'party4_normal', // v2에서는 실제 슬롯 수로 검증하므로 기본값
+    templateId: 'party4_normal',
     card: {
       ownerName: parsed.o,
       buffers: (parsed.b ?? []).map(expandChar),
@@ -93,9 +132,8 @@ function decodeV2(parsed: EncodedV2): DecodedPartyCard | null {
   };
 }
 
-function decodeV1(parsed: EncodedV1): DecodedPartyCard | null {
+function decodeV1(parsed: { t: RotationTemplateId; d: Omit<PartyCard, 'id'> }): DecodedPartyCard | null {
   if (!parsed.d || typeof parsed.d !== 'object') return null;
-  if (typeof parsed.t !== 'string') return null;
   const d = parsed.d;
   if (typeof d.ownerName !== 'string') return null;
   return {

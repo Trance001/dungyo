@@ -25,7 +25,7 @@ import { PresetImportDialog } from '@/components/features/PresetImportDialog';
 import { usePresetUrlHash } from '@/hooks/usePresetUrlHash';
 import { characterKey } from '@/domain/party-builder';
 import { usePlannerStore } from '@/stores/planner-store';
-import { compositionToPartyCard, validateCardForTemplate } from '@/domain/planner';
+import { compositionToPartyCard, presetToTemplate } from '@/domain/planner';
 import { encodePartyCard } from '@/lib/party-card-codec';
 
 import type { BufferExchangeInput } from '@/domain/party';
@@ -54,9 +54,8 @@ export function HomePage() {
   const [plannerMessage, setPlannerMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { pendingCode, clearPendingCode } = usePresetUrlHash();
-  const plannerGetTemplate = usePlannerStore((s) => s.getActiveTemplate);
+  const plannerSetTemplate = usePlannerStore((s) => s.setTemplate);
   const plannerAddCard = usePlannerStore((s) => s.addCard);
-  const plannerClearCards = usePlannerStore((s) => s.clearCards);
 
   // URL 해시로 전달된 프리셋 코드가 있으면 가져오기 다이얼로그 자동 오픈
   useEffect(() => {
@@ -154,16 +153,23 @@ export function HomePage() {
     const composition = partyResults[partyIndex];
     if (!composition || !composition.isComplete) return;
 
-    const plannerTemplate = plannerGetTemplate();
-    const card = compositionToPartyCard(composition, adventureName ?? '');
+    // 파티 구성의 슬롯에 맞는 템플릿 자동 탐색
+    const sc = composition.slotConfig;
+    const matchedTemplate = presetToTemplate({
+      dealerSlots: sc.dealerSlots,
+      bufferSlots: sc.bufferSlots,
+      secondaryBufferSlots: sc.secondaryBufferSlots,
+      totalMembers: sc.dealerSlots + sc.bufferSlots + sc.secondaryBufferSlots + sc.carrySlots,
+    });
 
-    const validationError = validateCardForTemplate(card, plannerTemplate);
-    if (validationError) {
-      showPlannerMessage('error', validationError);
+    if (!matchedTemplate) {
+      showPlannerMessage('error', '이 파티 구성에 맞는 로테이션 템플릿을 찾을 수 없습니다.');
       return;
     }
 
-    plannerClearCards();
+    const card = compositionToPartyCard(composition, adventureName ?? '');
+
+    plannerSetTemplate(matchedTemplate); // 템플릿 설정 + 기존 카드 초기화
     plannerAddCard(card);
     setActiveTab('planner');
     showPlannerMessage('success', `"${card.ownerName}" 카드가 플래너에 등록되었습니다.`);
@@ -174,7 +180,7 @@ export function HomePage() {
     if (!composition || !composition.isComplete) return;
 
     const card = compositionToPartyCard(composition, adventureName ?? '');
-    const code = encodePartyCard(card, plannerGetTemplate().id);
+    const code = encodePartyCard(card, 'dynamic');
     try {
       await navigator.clipboard.writeText(code);
       showPlannerMessage('success', '플래너 카드 코드가 복사되었습니다.');

@@ -156,21 +156,21 @@ function bufferInverseScore(
   return -rankDiffSum;
 }
 
-/**
- * 통합 점수: 딜 편차(1순위) + 버프 역매칭(2순위)
- * 딜 편차를 정규화하여 가중치 적용
- */
-function combinedScore(dealerStdDev: number, bufferInverse: number): number {
-  return dealerStdDev * 1000 + bufferInverse;
+interface Candidate {
+  cards: PartyCard[];
+  dealerOrder: number[][];
+  dealerStdDev: number;
+  bufferInverse: number;
 }
 
 /**
- * 파티 로테이션 최적 배치
+ * 파티 로테이션 최적 배치 (2단계 최적화)
  *
- * 알고리즘:
- * - 4인(24 순열): 전수 탐색
- * - 12인(12! 순열): 랜덤 리스타트 300회 + 인접 스왑 탐색
- * 각 컬럼 순서에 대해 딜러 순열 최적화 후 통합 점수(딜 편차 + 버프 역매칭) 계산
+ * 1단계: 딜합 편차 최소화 - 다수의 컬럼 배치를 탐색하여 최소 딜합 편차 확보
+ * 2단계: 버프 역매칭 - 딜합 편차가 동등한 후보 중에서 버프 역매칭이 가장 좋은 것 선택
+ *
+ * 4인(24 순열): 전수 탐색
+ * 12인(12! 순열): 랜덤 리스타트 500회 + 인접 스왑 탐색
  */
 export function buildPlannerAssignment(
   template: RotationTemplate,
@@ -192,66 +192,63 @@ export function buildPlannerAssignment(
     });
   }
 
-  let bestCards: PartyCard[] = paddedCards;
-  let bestDealerOrder: number[][] = paddedCards.map((c) => c.dealers.map((_, i) => i));
-  let bestScore = Infinity;
-
-  function evaluateOrder(orderedCards: PartyCard[]): {
-    dealerOrder: number[][];
-    dealerSums: number[];
-    score: number;
-  } {
+  function evaluateOrder(orderedCards: PartyCard[]): Candidate {
     const { dealerOrder, dealerSums } = optimizeDealerPermutations(matrix, orderedCards, peopleCount, matchesCount);
-    const dStdDev = stddev(dealerSums);
-    const bInverse = bufferInverseScore(matrix, orderedCards, dealerSums, peopleCount, matchesCount);
-    return { dealerOrder, dealerSums, score: combinedScore(dStdDev, bInverse) };
+    return {
+      cards: orderedCards,
+      dealerOrder,
+      dealerStdDev: stddev(dealerSums),
+      bufferInverse: bufferInverseScore(matrix, orderedCards, dealerSums, peopleCount, matchesCount),
+    };
   }
 
+  // 1단계: 후보 수집 (딜 편차 기준)
+  const candidates: Candidate[] = [];
+
   if (peopleCount <= 4) {
-    // 4인: 전수 탐색 (최대 24 순열)
     const indices = Array.from({ length: peopleCount }, (_, i) => i);
     for (const perm of permutations(indices)) {
-      const reordered = perm.map((i) => paddedCards[i]);
-      const result = evaluateOrder(reordered);
-      if (result.score < bestScore) {
-        bestScore = result.score;
-        bestCards = reordered;
-        bestDealerOrder = result.dealerOrder;
-      }
+      candidates.push(evaluateOrder(perm.map((i) => paddedCards[i])));
     }
   } else {
-    // 12인: 랜덤 리스타트 + 인접 스왑 개선
-    const RANDOM_STARTS = 300;
-
+    const RANDOM_STARTS = 500;
     for (let start = 0; start < RANDOM_STARTS; start++) {
       let currentCards = start === 0 ? [...paddedCards] : shuffleArray(paddedCards);
-      let currentResult = evaluateOrder(currentCards);
+      let current = evaluateOrder(currentCards);
 
-      // 인접 스왑으로 국소 개선
+      // 인접 스왑으로 딜 편차 국소 개선
       let swapImproved = true;
       while (swapImproved) {
         swapImproved = false;
         for (let i = 0; i < peopleCount; i++) {
           for (let j = i + 1; j < peopleCount; j++) {
-            const swapped = [...currentCards];
+            const swapped = [...current.cards];
             [swapped[i], swapped[j]] = [swapped[j], swapped[i]];
             const swapResult = evaluateOrder(swapped);
-            if (swapResult.score < currentResult.score - 1e-9) {
-              currentCards = swapped;
-              currentResult = swapResult;
+            if (swapResult.dealerStdDev < current.dealerStdDev - 1e-9) {
+              current = swapResult;
               swapImproved = true;
             }
           }
         }
       }
 
-      if (currentResult.score < bestScore) {
-        bestScore = currentResult.score;
-        bestCards = currentCards;
-        bestDealerOrder = currentResult.dealerOrder;
-      }
+      candidates.push(current);
     }
   }
+
+  // 2단계: 딜 편차 동등 후보 중 버프 역매칭 최선 선택
+  // 최소 딜 편차의 2% 이내인 후보를 "동등"으로 간주
+  const bestDealerSD = Math.min(...candidates.map((c) => c.dealerStdDev));
+  const threshold = bestDealerSD * 1.02 + 1; // 2% 또는 +1 여유
+  const eligible = candidates.filter((c) => c.dealerStdDev <= threshold);
+
+  // bufferInverse가 가장 낮은(= 역매칭이 가장 좋은) 후보 선택
+  eligible.sort((a, b) => a.bufferInverse - b.bufferInverse);
+  const best = eligible[0];
+
+  let bestCards = best.cards;
+  let bestDealerOrder = best.dealerOrder;
 
   // 최종 매치 배치 생성
   const colRoleMatches = buildColRoleMatches(matrix, peopleCount, matchesCount);

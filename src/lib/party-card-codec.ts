@@ -19,46 +19,24 @@ function base64UrlToUtf8(base64: string): string {
 }
 
 /**
- * v3 파이프 구분 압축 포맷
- * 형식: 3|소유자|역할:이름,직업코드,수치|역할:이름,직업코드,수치|...
- * 역할: b=버퍼, d=딜러, s=업둥버퍼
- * 직업코드: 숫자(매핑 있음) 또는 원본 직업명(매핑 없음)
+ * v4 초경량 포맷 (101자 이하, 치지직 채팅 호환)
+ * 형식: 4|소유자|역할+직업코드.수치|역할+직업코드.수치|...
+ * 캐릭터 이름은 포함하지 않음 (직업명으로 대체 표시)
  */
-function encodeCharV3(role: string, c: PartyCardCharacter): string {
-  const jCode = jobNameToCode(c.jobGrowName);
-  const job = jCode !== null ? String(jCode) : c.jobGrowName;
-  return `${role}:${c.characterName},${job},${c.stat}`;
-}
-
-function decodeCharV3(segment: string): { role: string; char: PartyCardCharacter } | null {
-  const colonIdx = segment.indexOf(':');
-  if (colonIdx < 1) return null;
-  const role = segment.slice(0, colonIdx);
-  const parts = segment.slice(colonIdx + 1).split(',');
-  if (parts.length < 3) return null;
-
-  const name = parts[0];
-  const jobRaw = parts[1];
-  const stat = Number(parts[2]) || 0;
-
-  // 직업: 숫자면 코드에서 복원, 아니면 원본
-  const jobCode = Number(jobRaw);
-  let jobGrowName: string;
-  if (!isNaN(jobCode) && jobCodeToName(jobCode)) {
-    jobGrowName = jobCodeToName(jobCode)!;
-  } else {
-    jobGrowName = jobRaw;
-  }
-
-  return { role, char: { characterName: name, jobGrowName, stat } };
-}
-
-/** 파티 카드를 압축 코드로 인코딩 (v3) */
 export function encodePartyCard(card: Omit<PartyCard, 'id'>, _templateId: RotationTemplateId): string {
-  const parts = ['3', card.ownerName];
-  for (const c of card.buffers) parts.push(encodeCharV3('b', c));
-  for (const c of card.dealers) parts.push(encodeCharV3('d', c));
-  for (const c of card.secondaryBuffers) parts.push(encodeCharV3('s', c));
+  const parts = ['4', card.ownerName];
+  for (const c of card.buffers) {
+    const j = jobNameToCode(c.jobGrowName) ?? c.jobGrowName;
+    parts.push(`b${j}.${c.stat}`);
+  }
+  for (const c of card.dealers) {
+    const j = jobNameToCode(c.jobGrowName) ?? c.jobGrowName;
+    parts.push(`d${j}.${c.stat}`);
+  }
+  for (const c of card.secondaryBuffers) {
+    const j = jobNameToCode(c.jobGrowName) ?? c.jobGrowName;
+    parts.push(`s${j}.${c.stat}`);
+  }
   return utf8ToBase64Url(parts.join('|'));
 }
 
@@ -67,19 +45,16 @@ export interface DecodedPartyCard {
   card: Omit<PartyCard, 'id'>;
 }
 
-/** 코드 디코딩 (v1/v2/v3 호환). 실패 시 null */
+/** 코드 디코딩 (v1~v4 호환). 실패 시 null */
 export function decodePartyCard(code: string): DecodedPartyCard | null {
   try {
     const trimmed = code.trim();
     if (!trimmed) return null;
     const raw = base64UrlToUtf8(trimmed);
 
-    // v3: 파이프 구분 포맷 ("3|..." 으로 시작)
-    if (raw.startsWith('3|')) {
-      return decodeV3(raw);
-    }
+    if (raw.startsWith('4|')) return decodeV4(raw);
+    if (raw.startsWith('3|')) return decodeV3(raw);
 
-    // v1/v2: JSON 포맷
     const parsed = JSON.parse(raw);
     if (parsed.v === 2) return decodeV2(parsed);
     if (parsed.v === 1) return decodeV1(parsed);
@@ -88,6 +63,46 @@ export function decodePartyCard(code: string): DecodedPartyCard | null {
     return null;
   }
 }
+
+/** v4 디코딩: 캐릭터 이름 없음, 직업명으로 대체 */
+function decodeV4(raw: string): DecodedPartyCard | null {
+  const segments = raw.split('|');
+  if (segments.length < 2) return null;
+
+  const ownerName = segments[1];
+  const buffers: PartyCardCharacter[] = [];
+  const dealers: PartyCardCharacter[] = [];
+  const secondaryBuffers: PartyCardCharacter[] = [];
+
+  for (let i = 2; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg.length < 2) continue;
+
+    const role = seg[0];
+    const dotIdx = seg.indexOf('.');
+    if (dotIdx < 2) continue;
+
+    const jobRaw = seg.slice(1, dotIdx);
+    const stat = Number(seg.slice(dotIdx + 1)) || 0;
+
+    const jobCode = Number(jobRaw);
+    const jobGrowName = (!isNaN(jobCode) && jobCodeToName(jobCode)) ? jobCodeToName(jobCode)! : jobRaw;
+    // 캐릭터 이름 없으므로 직업명에서 眞 제거한 이름 사용
+    const characterName = jobGrowName.replace(/^眞\s*/, '');
+
+    const char: PartyCardCharacter = { characterName, jobGrowName, stat };
+    if (role === 'b') buffers.push(char);
+    else if (role === 'd') dealers.push(char);
+    else if (role === 's') secondaryBuffers.push(char);
+  }
+
+  return {
+    templateId: 'party4_normal',
+    card: { ownerName, buffers, dealers, secondaryBuffers, carries: [] },
+  };
+}
+
+// --- v3 하위 호환 ---
 
 function decodeV3(raw: string): DecodedPartyCard | null {
   const segments = raw.split('|');
@@ -99,11 +114,24 @@ function decodeV3(raw: string): DecodedPartyCard | null {
   const secondaryBuffers: PartyCardCharacter[] = [];
 
   for (let i = 2; i < segments.length; i++) {
-    const decoded = decodeCharV3(segments[i]);
-    if (!decoded) continue;
-    if (decoded.role === 'b') buffers.push(decoded.char);
-    else if (decoded.role === 'd') dealers.push(decoded.char);
-    else if (decoded.role === 's') secondaryBuffers.push(decoded.char);
+    const colonIdx = segments[i].indexOf(':');
+    if (colonIdx < 1) continue;
+    const role = segments[i].slice(0, colonIdx);
+    const parts = segments[i].slice(colonIdx + 1).split(',');
+    if (parts.length < 3) continue;
+
+    const jobRaw = parts[1];
+    const jobCode = Number(jobRaw);
+    const jobGrowName = (!isNaN(jobCode) && jobCodeToName(jobCode)) ? jobCodeToName(jobCode)! : jobRaw;
+
+    const char: PartyCardCharacter = {
+      characterName: parts[0],
+      jobGrowName,
+      stat: Number(parts[2]) || 0,
+    };
+    if (role === 'b') buffers.push(char);
+    else if (role === 'd') dealers.push(char);
+    else if (role === 's') secondaryBuffers.push(char);
   }
 
   return {

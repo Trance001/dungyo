@@ -5,11 +5,12 @@ import { STORAGE_KEYS } from '@/config/constants';
 import { parseDundamText } from '@/domain/dundam-parser';
 import { isBufferJob } from '@/domain/character';
 
-import type { RaidRecruitCard, RaidRecruitCharacter } from '@/domain/raid-recruit';
+import type { RaidRecruitCard, RaidRecruitCharacter, SlotPosition } from '@/domain/raid-recruit';
 
 interface RaidRecruitState {
   matchCount: number;
   cards: RaidRecruitCard[];
+  swaps: Array<{ from: SlotPosition; to: SlotPosition }>;
 }
 
 interface RaidRecruitActions {
@@ -18,6 +19,8 @@ interface RaidRecruitActions {
   removeCard: (id: string) => void;
   updateCardCharacters: (id: string, dealers: RaidRecruitCharacter[], buffers: RaidRecruitCharacter[]) => void;
   fillCardFromDundam: (id: string, dundamText: string) => string | null;
+  addSwap: (from: SlotPosition, to: SlotPosition) => void;
+  clearSwaps: () => void;
   clearCards: () => void;
   loadFromStorage: () => void;
 }
@@ -25,9 +28,9 @@ interface RaidRecruitActions {
 function loadInitialState(): RaidRecruitState {
   const saved = storage.get<RaidRecruitState>(STORAGE_KEYS.RAID_RECRUIT);
   if (saved && Array.isArray(saved.cards)) {
-    return { matchCount: saved.matchCount ?? 3, cards: saved.cards };
+    return { matchCount: saved.matchCount ?? 3, cards: saved.cards, swaps: saved.swaps ?? [] };
   }
-  return { matchCount: 3, cards: [] };
+  return { matchCount: 3, cards: [], swaps: [] };
 }
 
 function persist(state: RaidRecruitState): void {
@@ -38,7 +41,7 @@ export const useRaidRecruitStore = create<RaidRecruitState & RaidRecruitActions>
   ...loadInitialState(),
 
   setMatchCount: (count) => {
-    set({ matchCount: count });
+    set({ matchCount: count, swaps: [] });
     persist(get());
   },
 
@@ -46,12 +49,12 @@ export const useRaidRecruitStore = create<RaidRecruitState & RaidRecruitActions>
     const exists = get().cards.some((c) => c.ownerName === card.ownerName);
     if (exists) return;
     const newCard: RaidRecruitCard = { ...card, id: crypto.randomUUID() };
-    set((state) => ({ cards: [...state.cards, newCard] }));
+    set((state) => ({ cards: [...state.cards, newCard], swaps: [] }));
     persist(get());
   },
 
   removeCard: (id) => {
-    set((state) => ({ cards: state.cards.filter((c) => c.id !== id) }));
+    set((state) => ({ cards: state.cards.filter((c) => c.id !== id), swaps: [] }));
     persist(get());
   },
 
@@ -95,8 +98,18 @@ export const useRaidRecruitStore = create<RaidRecruitState & RaidRecruitActions>
     return null;
   },
 
+  addSwap: (from, to) => {
+    set((state) => ({ swaps: [...state.swaps, { from, to }] }));
+    persist(get());
+  },
+
+  clearSwaps: () => {
+    set({ swaps: [] });
+    persist(get());
+  },
+
   clearCards: () => {
-    set({ cards: [] });
+    set({ cards: [], swaps: [] });
     persist(get());
   },
 

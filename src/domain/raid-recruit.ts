@@ -162,3 +162,75 @@ export function buildRaidRecruitAssignment(
     partyNames: PARTY_NAMES.slice(0, partyCount),
   };
 }
+
+/** 슬롯 좌표 */
+export type SlotPosition = [number, number, number]; // [matchIdx, partyIdx, slotIdx]
+
+/**
+ * 두 셀을 스왑했을 때 모험단 중복이 발생하지 않는지 확인
+ */
+export function canSwapSlots(
+  matches: (RaidRecruitSlot | null)[][][],
+  from: SlotPosition,
+  to: SlotPosition,
+): boolean {
+  const [m1, p1, s1] = from;
+  const [m2, p2, s2] = to;
+
+  // 같은 기수 내 스왑은 항상 가능 (중복이 변하지 않음)
+  if (m1 === m2) return true;
+
+  const slotA = matches[m1]?.[p1]?.[s1];
+  const slotB = matches[m2]?.[p2]?.[s2];
+
+  const ownerA = slotA?.ownerName ?? null;
+  const ownerB = slotB?.ownerName ?? null;
+
+  // A를 m2로 옮겼을 때: m2에 이미 ownerA가 있으면 불가 (타겟 슬롯 제외)
+  if (ownerA) {
+    for (const party of matches[m2]) {
+      for (let s = 0; s < party.length; s++) {
+        const slot = party[s];
+        if (slot && slot.ownerName === ownerA) {
+          // 타겟 슬롯 자체는 제외
+          if (!(party === matches[m2][p2] && s === s2)) return false;
+        }
+      }
+    }
+  }
+
+  // B를 m1로 옮겼을 때: m1에 이미 ownerB가 있으면 불가 (소스 슬롯 제외)
+  if (ownerB) {
+    for (const party of matches[m1]) {
+      for (let s = 0; s < party.length; s++) {
+        const slot = party[s];
+        if (slot && slot.ownerName === ownerB) {
+          if (!(party === matches[m1][p1] && s === s1)) return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+/**
+ * 배정 결과에 스왑을 적용하여 새 배열을 반환
+ */
+export function applySwap(
+  matches: (RaidRecruitSlot | null)[][][],
+  from: SlotPosition,
+  to: SlotPosition,
+): (RaidRecruitSlot | null)[][][] {
+  const result = matches.map((match) =>
+    match.map((party) => [...party]),
+  );
+
+  const [m1, p1, s1] = from;
+  const [m2, p2, s2] = to;
+  const temp = result[m1][p1][s1];
+  result[m1][p1][s1] = result[m2][p2][s2];
+  result[m2][p2][s2] = temp;
+
+  return result;
+}

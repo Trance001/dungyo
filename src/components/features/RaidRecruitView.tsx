@@ -12,16 +12,21 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRaidRecruitStore } from '@/stores/raid-recruit-store';
-import { buildRaidRecruitAssignment } from '@/domain/raid-recruit';
+import { buildRaidRecruitAssignment, canSwapSlots, applySwap } from '@/domain/raid-recruit';
+
+import type { SlotPosition } from '@/domain/raid-recruit';
 
 export function RaidRecruitView() {
   const {
     matchCount,
     cards,
+    swaps,
     setMatchCount,
     addCard,
     removeCard,
     fillCardFromDundam,
+    addSwap,
+    clearSwaps,
     clearCards,
   } = useRaidRecruitStore();
 
@@ -36,15 +41,71 @@ export function RaidRecruitView() {
   const [editingSlot, setEditingSlot] = useState<{ m: number; p: number; s: number } | null>(null);
   const [editName, setEditName] = useState('');
   const [editStat, setEditStat] = useState('');
+  const [dragSource, setDragSource] = useState<SlotPosition | null>(null);
+  const [invalidTargets, setInvalidTargets] = useState<Set<string>>(new Set());
 
   const partyCount = raidType === '8' ? 2 : 3;
   const dealersPerParty = 3;
   const buffersPerParty = 1;
 
-  const assignment = useMemo(
+  const baseAssignment = useMemo(
     () => buildRaidRecruitAssignment(cards, { matchCount, partyCount, dealersPerParty, buffersPerParty }),
     [cards, matchCount, partyCount],
   );
+
+  // 스왑 적용된 최종 assignment
+  const assignment = useMemo(() => {
+    let matches = baseAssignment.matches;
+    for (const swap of swaps) {
+      matches = applySwap(matches, swap.from, swap.to);
+    }
+    return { ...baseAssignment, matches };
+  }, [baseAssignment, swaps]);
+
+  function slotKey(m: number, p: number, s: number): string {
+    return `${m}-${p}-${s}`;
+  }
+
+  function handleDragStart(e: React.DragEvent, m: number, p: number, s: number) {
+    const pos: SlotPosition = [m, p, s];
+    setDragSource(pos);
+    e.dataTransfer.effectAllowed = 'move';
+
+    // 스왑 불가 대상 계산
+    const invalid = new Set<string>();
+    for (let mi = 0; mi < assignment.matches.length; mi++) {
+      for (let pi = 0; pi < assignment.matches[mi].length; pi++) {
+        for (let si = 0; si < assignment.matches[mi][pi].length; si++) {
+          if (mi === m && pi === p && si === s) continue;
+          if (!canSwapSlots(assignment.matches, pos, [mi, pi, si])) {
+            invalid.add(slotKey(mi, pi, si));
+          }
+        }
+      }
+    }
+    setInvalidTargets(invalid);
+  }
+
+  function handleDragOver(e: React.DragEvent, m: number, p: number, s: number) {
+    if (!dragSource) return;
+    if (invalidTargets.has(slotKey(m, p, s))) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }
+
+  function handleDrop(e: React.DragEvent, m: number, p: number, s: number) {
+    e.preventDefault();
+    if (!dragSource) return;
+    if (invalidTargets.has(slotKey(m, p, s))) return;
+    addSwap(dragSource, [m, p, s]);
+    setDragSource(null);
+    setInvalidTargets(new Set());
+  }
+
+  function handleDragEnd() {
+    setDragSource(null);
+    setInvalidTargets(new Set());
+  }
 
   function handleAddCard() {
     const name = ownerName.trim();
@@ -271,9 +332,14 @@ export function RaidRecruitView() {
             <CardTitle>편성 결과</CardTitle>
             <CardDescription>
               {assignment.vacancies > 0
-                ? `구인 ${assignment.vacancies}명 · 셀을 클릭하여 캐릭터 정보를 입력할 수 있습니다`
-                : '모든 슬롯이 채워졌습니다 · 셀을 클릭하여 캐릭터 정보를 입력할 수 있습니다'}
+                ? `구인 ${assignment.vacancies}명 · 셀 클릭으로 캐릭터 입력 · 셀 드래그로 위치 교환`
+                : '모든 슬롯이 채워졌습니다 · 셀 클릭으로 캐릭터 입력 · 셀 드래그로 위치 교환'}
             </CardDescription>
+            {swaps.length > 0 && (
+              <Button variant="outline" size="sm" onClick={clearSwaps} className="mt-2">
+                배치 초기화 ({swaps.length}건 스왑 적용됨)
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             {assignment.matches.map((match, matchIdx) => (
@@ -330,16 +396,31 @@ export function RaidRecruitView() {
                             );
                           }
 
+                          const isDragActive = dragSource !== null;
+                          const isInvalid = isDragActive && invalidTargets.has(slotKey(matchIdx, partyIdx, slotIdx));
+                          const isSource = isDragActive && dragSource[0] === matchIdx && dragSource[1] === partyIdx && dragSource[2] === slotIdx;
+
                           return (
                             <div
                               key={slotIdx}
-                              onClick={() => slot && handleSlotClick(matchIdx, partyIdx, slotIdx)}
-                              className={`rounded px-2 py-1.5 text-xs border ${
-                                slot === null
-                                  ? 'border-dashed border-muted-foreground/30 text-muted-foreground'
-                                  : slot.role === 'buffer'
-                                    ? 'border-blue-500/30 bg-blue-500/10 cursor-pointer hover:bg-blue-500/20'
-                                    : 'border-red-500/30 bg-red-500/10 cursor-pointer hover:bg-red-500/20'
+                              draggable={slot !== null && !editingSlot}
+                              onClick={() => !isDragActive && slot && handleSlotClick(matchIdx, partyIdx, slotIdx)}
+                              onDragStart={(e) => slot && handleDragStart(e, matchIdx, partyIdx, slotIdx)}
+                              onDragOver={(e) => handleDragOver(e, matchIdx, partyIdx, slotIdx)}
+                              onDrop={(e) => handleDrop(e, matchIdx, partyIdx, slotIdx)}
+                              onDragEnd={handleDragEnd}
+                              className={`rounded px-2 py-1.5 text-xs border transition-all ${
+                                isSource
+                                  ? 'border-primary bg-primary/20 opacity-50'
+                                  : isInvalid
+                                    ? 'border-dashed border-destructive/50 bg-destructive/10 opacity-40'
+                                    : isDragActive && !isInvalid && slot !== null
+                                      ? 'border-primary/50 ring-1 ring-primary/30'
+                                      : slot === null
+                                        ? 'border-dashed border-muted-foreground/30 text-muted-foreground'
+                                        : slot.role === 'buffer'
+                                          ? 'border-blue-500/30 bg-blue-500/10 cursor-pointer hover:bg-blue-500/20'
+                                          : 'border-red-500/30 bg-red-500/10 cursor-pointer hover:bg-red-500/20'
                               }`}
                             >
                               {slot === null ? (

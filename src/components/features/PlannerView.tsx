@@ -400,7 +400,7 @@ export function PlannerView() {
       </Card>
 
       {/* 로테이션 매트릭스 (테이블) */}
-      {assignment && (
+      {(
         <Card>
           <CardHeader>
             <CardTitle>파티 로테이션</CardTitle>

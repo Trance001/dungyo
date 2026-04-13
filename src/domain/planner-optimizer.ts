@@ -37,9 +37,8 @@ function stddev(values: number[]): number {
 export function buildPlannerAssignment(
   template: RotationTemplate,
   cards: PartyCard[],
-): PlannerAssignment | null {
+): PlannerAssignment {
   const { matrix, peopleCount, matchesCount } = template;
-  if (cards.length === 0) return null;
 
   // 빈 카드 패딩
   const paddedCards: PartyCard[] = [...cards];

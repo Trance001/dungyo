@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { usePlannerStore } from '@/stores/planner-store';
 import { presetToTemplate, validateCardForTemplate } from '@/domain/planner';
 import { buildPlannerAssignment } from '@/domain/planner-optimizer';
+import { RaidRecruitView } from '@/components/features/RaidRecruitView';
 import { decodePartyCard } from '@/lib/party-card-codec';
 import { encodePreset } from '@/lib/preset-codec';
 import { buildPresetShareUrl } from '@/hooks/usePresetUrlHash';
@@ -104,8 +105,35 @@ export function PlannerView() {
     handleTemplateApply(matched);
   }
 
+  const [plannerMode, setPlannerMode] = useState<'exchange' | 'recruit'>('exchange');
+
+  if (plannerMode === 'recruit') {
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPlannerMode('exchange')}>
+            버퍼교환
+          </Button>
+          <Button variant="default" size="sm">
+            일반모집
+          </Button>
+        </div>
+        <RaidRecruitView />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex gap-2">
+        <Button variant="default" size="sm">
+          버퍼교환
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setPlannerMode('recruit')}>
+          일반모집
+        </Button>
+      </div>
+
       {/* 템플릿 선택 */}
       <Card>
         <CardHeader>

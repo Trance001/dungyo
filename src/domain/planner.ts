@@ -2,7 +2,7 @@
 export type RotationRole = 'buffer' | 'dealer' | 'secondaryBuffer' | 'carry';
 
 /** 로테이션 템플릿 ID */
-export type RotationTemplateId = 'party4_normal' | 'party4_1carry' | 'party4_2carry' | 'raid12_8carry' | 'raid12_2sb' | 'dynamic';
+export type RotationTemplateId = 'party4_normal' | 'party4_1carry' | 'party4_2carry' | 'raid12_8carry' | 'raid12_2sb' | 'raid12_rotation' | 'dynamic';
 
 /** 로테이션 템플릿 정의 */
 export interface RotationTemplate {
@@ -26,6 +26,8 @@ export interface RotationTemplate {
    * (행 = 판, 열 = 사람 = 고정 위치)
    */
   matrix: RotationRole[][];
+  /** 파티 그룹명 (예: ['레드', '옐로', '그린']) - 12인 레이드에서 4인씩 그룹 구분 */
+  partyGroups?: string[];
 }
 
 /** 파티 카드 - 한 사람이 가져오는 캐릭터 목록 */
@@ -96,10 +98,11 @@ const party4_2carry: RotationTemplate = {
 /** 12인 8업둥 레이드: 주버퍼 1 + 딜러 3 + 업둥버퍼 1 + 업둥 7 */
 const raid12_8carry: RotationTemplate = {
   id: 'raid12_8carry',
-  label: '12인 레이드 (3딜 1벞 1벞둥 8업)',
+  label: '12인 레이드 (3딜 1벞 1벞둥 7업)',
   description: '12명이 각자 주버퍼 1 + 딜러 3 + 업둥버퍼 1 + 업둥 7을 가져와 12판 진행',
   peopleCount: 12,
   matchesCount: 12,
+  partyGroups: ['레드', '옐로', '그린'],
   slotsPerPerson: { buffer: 1, dealer: 3, secondaryBuffer: 1, carry: 7 },
   matrix: [
     // 사용자가 제공한 패턴 그대로 (12x12)
@@ -125,6 +128,7 @@ const raid12_2sb: RotationTemplate = {
   description: '12명이 각자 주버퍼 1 + 딜러 3 + 업둥버퍼 2 + 업둥 6을 가져와 12판 진행',
   peopleCount: 12,
   matchesCount: 12,
+  partyGroups: ['레드', '옐로', '그린'],
   slotsPerPerson: { buffer: 1, dealer: 3, secondaryBuffer: 2, carry: 6 },
   matrix: [
     ['buffer', 'dealer', 'dealer', 'dealer', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry'],
@@ -142,12 +146,41 @@ const raid12_2sb: RotationTemplate = {
   ],
 };
 
+/** 12인 벞교 로테이션: 1딜 1벞 2벞둥 8업 */
+const raid12_rotation: RotationTemplate = {
+  id: 'raid12_rotation',
+  label: '12인 벞교 (1딜 1벞 2벞둥 8업)',
+  description: '12명이 각자 딜러 1 + 버퍼 1 + 업둥버퍼 2 + 업둥 8을 가져와 12판 진행',
+  peopleCount: 12,
+  matchesCount: 12,
+  partyGroups: ['레드', '옐로', '그린'],
+  slotsPerPerson: { buffer: 1, dealer: 1, secondaryBuffer: 2, carry: 8 },
+  matrix: [
+    // 1~4기: 레드=캐리, 옐로=업둥, 그린=업둥
+    ['buffer', 'carry', 'carry', 'dealer', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry'],
+    ['carry', 'buffer', 'dealer', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry'],
+    ['carry', 'dealer', 'buffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry'],
+    ['dealer', 'carry', 'carry', 'buffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer'],
+    // 5~8기: 옐로=캐리, 레드=업둥, 그린=업둥
+    ['secondaryBuffer', 'carry', 'carry', 'carry', 'buffer', 'carry', 'carry', 'dealer', 'secondaryBuffer', 'carry', 'carry', 'carry'],
+    ['carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'buffer', 'dealer', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry'],
+    ['carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'dealer', 'buffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry'],
+    ['carry', 'carry', 'carry', 'secondaryBuffer', 'dealer', 'carry', 'carry', 'buffer', 'carry', 'carry', 'carry', 'secondaryBuffer'],
+    // 9~12기: 그린=캐리, 레드=업둥, 옐로=업둥
+    ['secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'buffer', 'carry', 'carry', 'dealer'],
+    ['carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'buffer', 'dealer', 'carry'],
+    ['carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'dealer', 'buffer', 'carry'],
+    ['carry', 'carry', 'carry', 'secondaryBuffer', 'carry', 'carry', 'carry', 'secondaryBuffer', 'dealer', 'carry', 'carry', 'buffer'],
+  ],
+};
+
 export const ROTATION_TEMPLATES: Partial<Record<RotationTemplateId, RotationTemplate>> = {
   party4_normal: party4Normal,
   party4_1carry: party4_1carry,
   party4_2carry: party4_2carry,
   raid12_8carry,
   raid12_2sb,
+  raid12_rotation,
 };
 
 /**

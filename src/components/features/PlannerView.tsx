@@ -324,14 +324,34 @@ export function PlannerView() {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-xs">
                 <thead>
+                  {template.partyGroups && (
+                    <tr>
+                      <th className="sticky left-0 z-10 bg-background border border-border px-2 py-1"></th>
+                      {template.partyGroups.map((groupName, groupIdx) => {
+                        const groupSize = template.peopleCount / template.partyGroups!.length;
+                        const colors = ['bg-red-500/15 text-red-400', 'bg-yellow-500/15 text-yellow-400', 'bg-green-500/15 text-green-400'];
+                        return (
+                          <th
+                            key={groupIdx}
+                            colSpan={groupSize}
+                            className={`border border-border px-2 py-1 text-center font-semibold ${colors[groupIdx] ?? ''}`}
+                          >
+                            {groupName}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  )}
                   <tr>
                     <th className="sticky left-0 z-10 bg-background border border-border px-2 py-1.5 text-left font-semibold">
                       기수
                     </th>
                     {Array.from({ length: template.peopleCount }, (_, personIdx) => {
                       const ownerName = assignment.matches[0]?.[personIdx]?.ownerName ?? `(미등록 ${personIdx + 1})`;
+                      const groupSize = template.partyGroups ? template.peopleCount / template.partyGroups.length : 0;
+                      const isGroupBorder = template.partyGroups && groupSize > 0 && personIdx > 0 && personIdx % groupSize === 0;
                       return (
-                        <th key={personIdx} className="border border-border px-2 py-1.5 text-center font-semibold min-w-[100px]">
+                        <th key={personIdx} className={`border border-border px-2 py-1.5 text-center font-semibold min-w-[100px] ${isGroupBorder ? 'border-l-2 border-l-border' : ''}`}>
                           {ownerName}
                         </th>
                       );
@@ -355,10 +375,12 @@ export function PlannerView() {
                       {Array.from({ length: template.peopleCount }, (_, personIdx) => {
                         const slot = assignment.matches[matchIdx][personIdx];
                         const isCarry = slot.role === 'carry';
+                        const groupSize = template.partyGroups ? template.peopleCount / template.partyGroups.length : 0;
+                        const isGroupBorder = template.partyGroups && groupSize > 0 && personIdx > 0 && personIdx % groupSize === 0;
                         return (
                           <td
                             key={personIdx}
-                            className={`border border-border px-2 py-1.5 text-center ${isCarry ? 'bg-muted/30' : ''}`}
+                            className={`border border-border px-2 py-1.5 text-center ${isCarry ? 'bg-muted/30' : ''} ${isGroupBorder ? 'border-l-2 border-l-border' : ''}`}
                           >
                             {isCarry ? (
                               <span className="text-muted-foreground">[업둥]</span>

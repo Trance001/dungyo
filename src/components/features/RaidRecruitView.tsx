@@ -116,10 +116,11 @@ export function RaidRecruitView() {
               arr[count] = { name: editName.trim(), stat: Number(editStat) || 0 };
 
               if (slot.role === 'dealer') {
-                useRaidRecruitStore.getState().updateCardCharacters(card.id, arr, card.buffers);
+                useRaidRecruitStore.getState().updateCardCharacters(card.id, arr, card.buffers ?? []);
               } else {
-                useRaidRecruitStore.getState().updateCardCharacters(card.id, card.dealers, arr);
+                useRaidRecruitStore.getState().updateCardCharacters(card.id, card.dealers ?? [], arr);
               }
+
               setEditingSlot(null);
               return;
             }
@@ -218,7 +219,7 @@ export function RaidRecruitView() {
                     <span className="font-medium">{card.ownerName}</span>
                     <Badge variant="secondary" className="bg-red-500/15 text-red-400 text-xs">딜 {card.dealerCount}</Badge>
                     <Badge variant="secondary" className="bg-blue-500/15 text-blue-400 text-xs">벞 {card.bufferCount}</Badge>
-                    {(card.dealers.length > 0 || card.buffers.length > 0) && (
+                    {((card.dealers?.length ?? 0) > 0 || (card.buffers?.length ?? 0) > 0) && (
                       <span className="text-xs text-green-400">캐릭터 등록됨</span>
                     )}
                   </div>
@@ -291,12 +292,25 @@ export function RaidRecruitView() {
                           if (isEditing && slot) {
                             return (
                               <div key={slotIdx} className="rounded border border-primary px-2 py-1.5 text-xs space-y-1">
+                                <p className="text-muted-foreground">캐릭터명 엔터 → 던담 이동 · 수치 엔터 → 저장</p>
                                 <div className="flex gap-1">
                                   <Input
                                     className="h-6 text-xs"
                                     placeholder="캐릭터명"
                                     value={editName}
                                     onChange={(e) => setEditName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && editName.trim()) {
+                                        // 수치 입력칸으로 포커스 이동
+                                        const statInput = (e.currentTarget.parentElement?.querySelector('input[type="number"]') as HTMLInputElement | null);
+                                        statInput?.focus();
+                                        // 던담 새 탭 열기
+                                        window.open(
+                                          `https://dundam.xyz/search?server=all&name=${encodeURIComponent(editName.trim())}`,
+                                          '_blank',
+                                        );
+                                      }
+                                    }}
                                     autoFocus
                                   />
                                   <Input
@@ -305,6 +319,7 @@ export function RaidRecruitView() {
                                     placeholder={slot.role === 'buffer' ? '만' : '억'}
                                     value={editStat}
                                     onChange={(e) => setEditStat(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSlotSave()}
                                   />
                                 </div>
                                 <div className="flex gap-1">

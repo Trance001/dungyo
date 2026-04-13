@@ -102,7 +102,7 @@ export function buildRaidRecruitAssignment(
       for (let p = 0; p < partyCount; p++) {
         if (bufferFilled[m][p] >= buffersPerParty) continue;
         const idx = cardBufferIdx.get(card.id) ?? 0;
-        const character = card.buffers[idx];
+        const character = card.buffers?.[idx];
         const slotIdx = bufferFilled[m][p];
         matches[m][p][slotIdx] = {
           ownerName: card.ownerName,
@@ -123,7 +123,7 @@ export function buildRaidRecruitAssignment(
       for (let p = 0; p < partyCount; p++) {
         if (dealerFilled[m][p] >= dealersPerParty) continue;
         const idx = cardDealerIdx.get(card.id) ?? 0;
-        const character = card.dealers[idx];
+        const character = card.dealers?.[idx];
         const slotIdx = buffersPerParty + dealerFilled[m][p];
         matches[m][p][slotIdx] = {
           ownerName: card.ownerName,

@@ -2,7 +2,7 @@
 export type RotationRole = 'buffer' | 'dealer' | 'secondaryBuffer' | 'carry';
 
 /** 로테이션 템플릿 ID */
-export type RotationTemplateId = 'party4_normal' | 'party4_1carry' | 'party4_2carry' | 'raid12_8carry' | 'raid12_2sb' | 'raid12_rotation' | 'dynamic';
+export type RotationTemplateId = 'party4_normal' | 'party4_1carry' | 'party4_2carry' | 'raid12_8carry' | 'raid12_2sb' | 'raid12_rotation' | 'raid12_3d1b' | 'dynamic';
 
 /** 로테이션 템플릿 정의 */
 export interface RotationTemplate {
@@ -174,6 +174,34 @@ const raid12_rotation: RotationTemplate = {
   ],
 };
 
+/** 12인 레이드 3딜 1벞 (업둥버퍼 없음): 캐리 파티 로테이션 */
+const raid12_3d1b: RotationTemplate = {
+  id: 'raid12_3d1b',
+  label: '12인 레이드 (3딜 1벞 8업)',
+  description: '12명이 각자 버퍼 1 + 딜러 3 + 업둥 8을 가져와 12판 진행. 캐리 파티가 레드→옐로→그린으로 4기수씩 교대',
+  peopleCount: 12,
+  matchesCount: 12,
+  partyGroups: ['레드', '옐로', '그린'],
+  slotsPerPerson: { buffer: 1, dealer: 3, secondaryBuffer: 0, carry: 8 },
+  matrix: [
+    // 1~4기: 레드=캐리(벞+딜), 옐로=업둥, 그린=업둥
+    ['buffer', 'dealer', 'dealer', 'dealer', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry'],
+    ['dealer', 'buffer', 'dealer', 'dealer', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry'],
+    ['dealer', 'dealer', 'buffer', 'dealer', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry'],
+    ['dealer', 'dealer', 'dealer', 'buffer', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry'],
+    // 5~8기: 옐로=캐리(벞+딜), 레드=업둥, 그린=업둥
+    ['carry', 'carry', 'carry', 'carry', 'buffer', 'dealer', 'dealer', 'dealer', 'carry', 'carry', 'carry', 'carry'],
+    ['carry', 'carry', 'carry', 'carry', 'dealer', 'buffer', 'dealer', 'dealer', 'carry', 'carry', 'carry', 'carry'],
+    ['carry', 'carry', 'carry', 'carry', 'dealer', 'dealer', 'buffer', 'dealer', 'carry', 'carry', 'carry', 'carry'],
+    ['carry', 'carry', 'carry', 'carry', 'dealer', 'dealer', 'dealer', 'buffer', 'carry', 'carry', 'carry', 'carry'],
+    // 9~12기: 그린=캐리(벞+딜), 레드=업둥, 옐로=업둥
+    ['carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'buffer', 'dealer', 'dealer', 'dealer'],
+    ['carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'dealer', 'buffer', 'dealer', 'dealer'],
+    ['carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'dealer', 'dealer', 'buffer', 'dealer'],
+    ['carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'carry', 'dealer', 'dealer', 'dealer', 'buffer'],
+  ],
+};
+
 export const ROTATION_TEMPLATES: Partial<Record<RotationTemplateId, RotationTemplate>> = {
   party4_normal: party4Normal,
   party4_1carry: party4_1carry,
@@ -181,6 +209,7 @@ export const ROTATION_TEMPLATES: Partial<Record<RotationTemplateId, RotationTemp
   raid12_8carry,
   raid12_2sb,
   raid12_rotation,
+  raid12_3d1b,
 };
 
 /**

@@ -84,6 +84,8 @@ export const usePlannerStore = create<PlannerState & PlannerActions>((set, get) 
   },
 
   addCard: (card) => {
+    const exists = get().cards.some((c) => c.ownerName === card.ownerName);
+    if (exists) return;
     const newCard: PartyCard = { ...card, id: crypto.randomUUID() };
     set((state) => ({ cards: [...state.cards, newCard] }));
     persist(get());

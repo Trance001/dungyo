@@ -352,7 +352,23 @@ export function PlannerView() {
                       const isGroupBorder = template.partyGroups && groupSize > 0 && personIdx > 0 && personIdx % groupSize === 0;
                       return (
                         <th key={personIdx} className={`border border-border px-2 py-1.5 text-center font-semibold min-w-[100px] ${isGroupBorder ? 'border-l-2 border-l-border' : ''}`}>
-                          {ownerName}
+                          <div className="flex items-center justify-center gap-0.5">
+                            <button
+                              onClick={() => personIdx > 0 && moveCard(personIdx, personIdx - 1)}
+                              disabled={personIdx === 0}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 px-0.5"
+                            >
+                              ←
+                            </button>
+                            <span className="truncate">{ownerName}</span>
+                            <button
+                              onClick={() => personIdx < template.peopleCount - 1 && moveCard(personIdx, personIdx + 1)}
+                              disabled={personIdx >= template.peopleCount - 1}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 px-0.5"
+                            >
+                              →
+                            </button>
+                          </div>
                         </th>
                       );
                     })}

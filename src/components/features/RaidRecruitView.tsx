@@ -14,13 +14,13 @@ import { Badge } from '@/components/ui/badge';
 import { useRaidRecruitStore } from '@/stores/raid-recruit-store';
 import { buildRaidRecruitAssignment } from '@/domain/raid-recruit';
 
+const PARTY_COLORS = ['bg-red-500/15 text-red-400', 'bg-yellow-500/15 text-yellow-400', 'bg-green-500/15 text-green-400', 'bg-blue-500/15 text-blue-400', 'bg-purple-500/15 text-purple-400'];
+
 export function RaidRecruitView() {
   const {
     matchCount,
-    slotsPerMatch,
     cards,
     setMatchCount,
-    setSlotsPerMatch,
     addCard,
     removeCard,
     clearCards,
@@ -31,9 +31,13 @@ export function RaidRecruitView() {
   const [bufferCount, setBufferCount] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
 
+  const partyCount = 3;
+  const dealersPerParty = 3;
+  const buffersPerParty = 1;
+
   const assignment = useMemo(
-    () => buildRaidRecruitAssignment(cards, { matchCount, slotsPerMatch }),
-    [cards, matchCount, slotsPerMatch],
+    () => buildRaidRecruitAssignment(cards, { matchCount, partyCount, dealersPerParty, buffersPerParty }),
+    [cards, matchCount],
   );
 
   function handleAddCard() {
@@ -68,32 +72,19 @@ export function RaidRecruitView() {
       <Card>
         <CardHeader>
           <CardTitle>레이드 편성 설정</CardTitle>
-          <CardDescription>기수 수와 기수당 인원을 설정하세요</CardDescription>
+          <CardDescription>기수 수를 설정하세요 (각 기수 = 레드/옐로/그린 3파티 × 딜러3+버퍼1)</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="matchCount">기수 수</Label>
-              <Input
-                id="matchCount"
-                type="number"
-                className="w-24"
-                value={matchCount}
-                onChange={(e) => setMatchCount(Number(e.target.value) || 1)}
-                min={1}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="slotsPerMatch">기수당 인원</Label>
-              <Input
-                id="slotsPerMatch"
-                type="number"
-                className="w-24"
-                value={slotsPerMatch}
-                onChange={(e) => setSlotsPerMatch(Number(e.target.value) || 1)}
-                min={1}
-              />
-            </div>
+          <div className="space-y-1">
+            <Label htmlFor="matchCount">기수 수</Label>
+            <Input
+              id="matchCount"
+              type="number"
+              className="w-24"
+              value={matchCount}
+              onChange={(e) => setMatchCount(Number(e.target.value) || 1)}
+              min={1}
+            />
           </div>
         </CardContent>
       </Card>
@@ -186,51 +177,42 @@ export function RaidRecruitView() {
                 : '모든 슬롯이 채워졌습니다'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-xs">
-                <thead>
-                  <tr>
-                    <th className="border border-border px-2 py-1.5 text-left font-semibold">기수</th>
-                    {Array.from({ length: slotsPerMatch }, (_, i) => (
-                      <th key={i} className="border border-border px-2 py-1.5 text-center font-semibold min-w-[80px]">
-                        {i + 1}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {assignment.matches.map((match, matchIdx) => (
-                    <tr key={matchIdx}>
-                      <td className="border border-border px-2 py-1.5 font-medium">{matchIdx + 1}기</td>
-                      {match.map((slot, slotIdx) => (
-                        <td
-                          key={slotIdx}
-                          className={`border border-border px-2 py-1.5 text-center ${
-                            slot === null
-                              ? 'bg-muted/30 text-muted-foreground'
-                              : slot.role === 'buffer'
-                                ? 'bg-blue-500/10'
-                                : 'bg-red-500/10'
-                          }`}
-                        >
-                          {slot === null ? (
-                            <span className="text-muted-foreground">(구인)</span>
-                          ) : (
-                            <div>
-                              <div className="font-medium truncate">{slot.ownerName}</div>
-                              <div className={slot.role === 'buffer' ? 'text-blue-400' : 'text-red-400'}>
-                                [{slot.role === 'buffer' ? '벞' : '딜'}]
-                              </div>
-                            </div>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
+          <CardContent className="space-y-6">
+            {assignment.matches.map((match, matchIdx) => (
+              <div key={matchIdx} className="space-y-2">
+                <h3 className="text-sm font-semibold">{matchIdx + 1}기</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {match.map((party, partyIdx) => (
+                    <div key={partyIdx} className={`rounded-lg border border-border p-3 ${PARTY_COLORS[partyIdx] ?? ''}`}>
+                      <p className="text-xs font-semibold mb-2">{assignment.partyNames[partyIdx]}</p>
+                      <div className="space-y-1">
+                        {party.map((slot, slotIdx) => (
+                          <div
+                            key={slotIdx}
+                            className={`rounded px-2 py-1 text-xs ${
+                              slot === null
+                                ? 'bg-muted/50 text-muted-foreground'
+                                : slot.role === 'buffer'
+                                  ? 'bg-blue-500/20 text-blue-300'
+                                  : 'bg-red-500/20 text-red-300'
+                            }`}
+                          >
+                            {slot === null ? (
+                              `(구인 ${slotIdx < buffersPerParty ? '버퍼' : '딜러'})`
+                            ) : (
+                              <span>
+                                <span className="font-medium">{slot.ownerName}</span>
+                                <span className="ml-1 opacity-70">[{slot.role === 'buffer' ? '벞' : '딜'}]</span>
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

@@ -7,13 +7,11 @@ import type { RaidRecruitCard } from '@/domain/raid-recruit';
 
 interface RaidRecruitState {
   matchCount: number;
-  slotsPerMatch: number;
   cards: RaidRecruitCard[];
 }
 
 interface RaidRecruitActions {
   setMatchCount: (count: number) => void;
-  setSlotsPerMatch: (count: number) => void;
   addCard: (card: Omit<RaidRecruitCard, 'id'>) => void;
   removeCard: (id: string) => void;
   clearCards: () => void;
@@ -23,13 +21,9 @@ interface RaidRecruitActions {
 function loadInitialState(): RaidRecruitState {
   const saved = storage.get<RaidRecruitState>(STORAGE_KEYS.RAID_RECRUIT);
   if (saved && Array.isArray(saved.cards)) {
-    return {
-      matchCount: saved.matchCount ?? 3,
-      slotsPerMatch: saved.slotsPerMatch ?? 12,
-      cards: saved.cards,
-    };
+    return { matchCount: saved.matchCount ?? 3, cards: saved.cards };
   }
-  return { matchCount: 3, slotsPerMatch: 12, cards: [] };
+  return { matchCount: 3, cards: [] };
 }
 
 function persist(state: RaidRecruitState): void {
@@ -41,11 +35,6 @@ export const useRaidRecruitStore = create<RaidRecruitState & RaidRecruitActions>
 
   setMatchCount: (count) => {
     set({ matchCount: count });
-    persist(get());
-  },
-
-  setSlotsPerMatch: (count) => {
-    set({ slotsPerMatch: count });
     persist(get());
   },
 

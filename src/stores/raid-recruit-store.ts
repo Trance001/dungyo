@@ -2,8 +2,10 @@ import { create } from 'zustand';
 
 import { storage } from '@/services/storage';
 import { STORAGE_KEYS } from '@/config/constants';
+import { parseDundamText } from '@/domain/dundam-parser';
+import { isBufferJob } from '@/domain/character';
 
-import type { RaidRecruitCard } from '@/domain/raid-recruit';
+import type { RaidRecruitCard, RaidRecruitCharacter } from '@/domain/raid-recruit';
 
 interface RaidRecruitState {
   matchCount: number;
@@ -14,6 +16,8 @@ interface RaidRecruitActions {
   setMatchCount: (count: number) => void;
   addCard: (card: Omit<RaidRecruitCard, 'id'>) => void;
   removeCard: (id: string) => void;
+  updateCardCharacters: (id: string, dealers: RaidRecruitCharacter[], buffers: RaidRecruitCharacter[]) => void;
+  fillCardFromDundam: (id: string, dundamText: string) => string | null;
   clearCards: () => void;
   loadFromStorage: () => void;
 }
@@ -49,6 +53,46 @@ export const useRaidRecruitStore = create<RaidRecruitState & RaidRecruitActions>
   removeCard: (id) => {
     set((state) => ({ cards: state.cards.filter((c) => c.id !== id) }));
     persist(get());
+  },
+
+  updateCardCharacters: (id, dealers, buffers) => {
+    set((state) => ({
+      cards: state.cards.map((c) =>
+        c.id === id ? { ...c, dealers, buffers } : c,
+      ),
+    }));
+    persist(get());
+  },
+
+  fillCardFromDundam: (id, dundamText) => {
+    const parsed = parseDundamText(dundamText);
+    if (!parsed.adventureName || parsed.characters.length === 0) {
+      return '던담 데이터를 인식할 수 없습니다.';
+    }
+
+    const dealers: RaidRecruitCharacter[] = [];
+    const buffers: RaidRecruitCharacter[] = [];
+
+    for (const c of parsed.characters) {
+      if (isBufferJob(c.jobGrowName) && c.buffPower !== null) {
+        buffers.push({ name: c.characterName, stat: Math.round(c.buffPower / 10000) });
+      } else if (c.damage !== null) {
+        dealers.push({ name: c.characterName, stat: c.damage });
+      }
+    }
+
+    const card = get().cards.find((c) => c.id === id);
+    if (!card) return '카드를 찾을 수 없습니다.';
+
+    set((state) => ({
+      cards: state.cards.map((c) =>
+        c.id === id
+          ? { ...c, dealers: dealers.slice(0, c.dealerCount), buffers: buffers.slice(0, c.bufferCount) }
+          : c,
+      ),
+    }));
+    persist(get());
+    return null;
   },
 
   clearCards: () => {

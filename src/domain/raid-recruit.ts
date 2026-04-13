@@ -1,9 +1,20 @@
+/** 레이드 모집 캐릭터 상세 */
+export interface RaidRecruitCharacter {
+  name: string;
+  /** 딜러: 억, 버퍼: 만 */
+  stat: number;
+}
+
 /** 일반 레이드 모집 카드 */
 export interface RaidRecruitCard {
   id: string;
   ownerName: string;
   dealerCount: number;
   bufferCount: number;
+  /** 딜러 캐릭터 상세 (선택, dealerCount만큼) */
+  dealers: RaidRecruitCharacter[];
+  /** 버퍼 캐릭터 상세 (선택, bufferCount만큼) */
+  buffers: RaidRecruitCharacter[];
 }
 
 /** 레이드 모집 입력 조건 */
@@ -22,6 +33,7 @@ export interface RaidRecruitInput {
 export interface RaidRecruitSlot {
   ownerName: string;
   role: 'dealer' | 'buffer';
+  character?: RaidRecruitCharacter;
 }
 
 /** 배정 결과 */
@@ -44,7 +56,8 @@ const PARTY_NAMES = ['레드', '옐로', '그린', '블루', '퍼플'];
  * 2. 각 카드에 대해 버퍼 우선으로 파티의 버퍼 슬롯에 분배
  * 3. 딜러를 파티의 딜러 슬롯에 분배
  * 4. 같은 기수에 같은 모험단 중복 불가
- * 5. 남은 빈 칸은 null (구인)
+ * 5. 카드에 캐릭터 상세가 있으면 순서대로 할당
+ * 6. 남은 빈 칸은 null (구인)
  */
 export function buildRaidRecruitAssignment(
   cards: RaidRecruitCard[],
@@ -53,7 +66,6 @@ export function buildRaidRecruitAssignment(
   const { matchCount, partyCount, dealersPerParty, buffersPerParty } = input;
   const slotsPerParty = dealersPerParty + buffersPerParty;
 
-  // 기수별 파티별 슬롯 초기화
   const matches: (RaidRecruitSlot | null)[][][] = Array.from(
     { length: matchCount },
     () => Array.from(
@@ -62,13 +74,11 @@ export function buildRaidRecruitAssignment(
     ),
   );
 
-  // 기수별 등록된 모험단명 추적
   const matchOwners: Set<string>[] = Array.from(
     { length: matchCount },
     () => new Set<string>(),
   );
 
-  // 기수별 파티별 역할 채움 수 추적
   const bufferFilled: number[][] = Array.from(
     { length: matchCount },
     () => new Array(partyCount).fill(0),
@@ -82,29 +92,47 @@ export function buildRaidRecruitAssignment(
     (a, b) => (b.dealerCount + b.bufferCount) - (a.dealerCount + a.bufferCount),
   );
 
-  function assignBuffer(ownerName: string): void {
+  // 카드별 버퍼/딜러 배정 카운터 (캐릭터 상세 순서 매칭용)
+  const cardBufferIdx = new Map<string, number>();
+  const cardDealerIdx = new Map<string, number>();
+
+  function assignBuffer(card: RaidRecruitCard): void {
     for (let m = 0; m < matchCount; m++) {
-      if (matchOwners[m].has(ownerName)) continue;
+      if (matchOwners[m].has(card.ownerName)) continue;
       for (let p = 0; p < partyCount; p++) {
         if (bufferFilled[m][p] >= buffersPerParty) continue;
+        const idx = cardBufferIdx.get(card.id) ?? 0;
+        const character = card.buffers[idx];
         const slotIdx = bufferFilled[m][p];
-        matches[m][p][slotIdx] = { ownerName, role: 'buffer' };
+        matches[m][p][slotIdx] = {
+          ownerName: card.ownerName,
+          role: 'buffer',
+          character: character ?? undefined,
+        };
         bufferFilled[m][p]++;
-        matchOwners[m].add(ownerName);
+        matchOwners[m].add(card.ownerName);
+        cardBufferIdx.set(card.id, idx + 1);
         return;
       }
     }
   }
 
-  function assignDealer(ownerName: string): void {
+  function assignDealer(card: RaidRecruitCard): void {
     for (let m = 0; m < matchCount; m++) {
-      if (matchOwners[m].has(ownerName)) continue;
+      if (matchOwners[m].has(card.ownerName)) continue;
       for (let p = 0; p < partyCount; p++) {
         if (dealerFilled[m][p] >= dealersPerParty) continue;
+        const idx = cardDealerIdx.get(card.id) ?? 0;
+        const character = card.dealers[idx];
         const slotIdx = buffersPerParty + dealerFilled[m][p];
-        matches[m][p][slotIdx] = { ownerName, role: 'dealer' };
+        matches[m][p][slotIdx] = {
+          ownerName: card.ownerName,
+          role: 'dealer',
+          character: character ?? undefined,
+        };
         dealerFilled[m][p]++;
-        matchOwners[m].add(ownerName);
+        matchOwners[m].add(card.ownerName);
+        cardDealerIdx.set(card.id, idx + 1);
         return;
       }
     }
@@ -112,14 +140,13 @@ export function buildRaidRecruitAssignment(
 
   for (const card of sorted) {
     for (let i = 0; i < card.bufferCount; i++) {
-      assignBuffer(card.ownerName);
+      assignBuffer(card);
     }
     for (let i = 0; i < card.dealerCount; i++) {
-      assignDealer(card.ownerName);
+      assignDealer(card);
     }
   }
 
-  // 구인 수 계산
   let vacancies = 0;
   for (let m = 0; m < matchCount; m++) {
     for (let p = 0; p < partyCount; p++) {

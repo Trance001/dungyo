@@ -4,7 +4,7 @@ import { buildRaidRecruitAssignment } from '../raid-recruit';
 import type { RaidRecruitCard } from '../raid-recruit';
 
 function makeCard(ownerName: string, dealerCount: number, bufferCount: number): RaidRecruitCard {
-  return { id: ownerName, ownerName, dealerCount, bufferCount };
+  return { id: ownerName, ownerName, dealerCount, bufferCount, dealers: [], buffers: [] };
 }
 
 const DEFAULT_INPUT = { matchCount: 3, partyCount: 3, dealersPerParty: 3, buffersPerParty: 1 };

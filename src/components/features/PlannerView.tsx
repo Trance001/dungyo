@@ -89,6 +89,10 @@ export function PlannerView() {
       setImportError(err);
       return;
     }
+    if (cards.some((c) => c.ownerName === result.card.ownerName)) {
+      setImportError(`'${result.card.ownerName}' 모험단은 이미 등록되어 있습니다.`);
+      return;
+    }
     addCard(result.card);
     setImportCode('');
     setImportError(null);

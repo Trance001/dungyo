@@ -247,6 +247,7 @@ export function presetToTemplate(preset: {
   for (const template of Object.values(ROTATION_TEMPLATES)) {
     const s = template.slotsPerPerson;
     if (
+      template.peopleCount === preset.totalMembers &&
       s.buffer === preset.bufferSlots &&
       s.dealer === preset.dealerSlots &&
       s.secondaryBuffer === preset.secondaryBufferSlots

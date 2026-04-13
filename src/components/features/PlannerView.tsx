@@ -46,6 +46,8 @@ export function PlannerView() {
   const removeCard = usePlannerStore((s) => s.removeCard);
   const moveCard = usePlannerStore((s) => s.moveCard);
   const clearCards = usePlannerStore((s) => s.clearCards);
+  const getCardHistory = usePlannerStore((s) => s.getCardHistory);
+  const clearCardHistory = usePlannerStore((s) => s.clearCardHistory);
 
   const { presets } = usePresets();
 
@@ -55,6 +57,7 @@ export function PlannerView() {
   const [importCode, setImportCode] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [copiedTarget, setCopiedTarget] = useState<'code' | 'url' | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const template = getActiveTemplate();
   const templateId = template.id;
@@ -213,6 +216,9 @@ export function PlannerView() {
               <Button variant="outline" size="sm" onClick={() => { setEditingCard(null); setFormOpen(true); }} disabled={isFull}>
                 카드 추가
               </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
+                {showHistory ? '이력 닫기' : '등록 이력'}
+              </Button>
               {cards.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={clearCards} className="text-destructive hover:text-destructive">
                   전체 삭제
@@ -241,6 +247,57 @@ export function PlannerView() {
               )}
             </div>
           )}
+
+          {/* 등록 이력 */}
+          {showHistory && (() => {
+            const history = getCardHistory();
+            const registeredNames = new Set(cards.map((c) => c.ownerName));
+            return (
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">등록 이력 ({history.length}건)</p>
+                  {history.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearCardHistory} className="text-xs text-destructive hover:text-destructive h-6">
+                      이력 삭제
+                    </Button>
+                  )}
+                </div>
+                {history.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-2">이 프리셋에 등록된 이력이 없습니다.</p>
+                ) : (
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {history.map((entry, idx) => {
+                      const alreadyAdded = registeredNames.has(entry.card.ownerName);
+                      const date = new Date(entry.registeredAt);
+                      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                      return (
+                        <div key={idx} className="flex items-center justify-between rounded border border-border px-3 py-1.5 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{entry.card.ownerName}</span>
+                            <span className="text-xs text-muted-foreground">{dateStr}</span>
+                            <span className="text-xs text-muted-foreground">
+                              딜{entry.card.dealers.length} 벞{entry.card.buffers.length}
+                              {entry.card.secondaryBuffers.length > 0 && ` 벞둥${entry.card.secondaryBuffers.length}`}
+                              {entry.card.carries.length > 0 && ` 업${entry.card.carries.length}`}
+                            </span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs"
+                            disabled={alreadyAdded || isFull}
+                            onClick={() => addCard(entry.card)}
+                          >
+                            {alreadyAdded ? '등록됨' : '추가'}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {cards.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">

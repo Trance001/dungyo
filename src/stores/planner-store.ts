@@ -6,6 +6,15 @@ import { STORAGE_KEYS } from '@/config/constants';
 import type { PartyCard, RotationTemplate, RotationTemplateId } from '@/domain/planner';
 import { ROTATION_TEMPLATES } from '@/domain/planner';
 
+/** 카드 이력 항목 */
+export interface CardHistoryEntry {
+  card: Omit<PartyCard, 'id'>;
+  registeredAt: string;
+}
+
+/** 템플릿별 카드 이력 */
+type CardHistoryMap = Record<string, CardHistoryEntry[]>;
+
 interface PlannerState {
   templateId: RotationTemplateId;
   customTemplate: RotationTemplate | null;
@@ -21,6 +30,8 @@ interface PlannerActions {
   moveCard: (fromIndex: number, toIndex: number) => void;
   clearCards: () => void;
   loadFromStorage: () => void;
+  getCardHistory: () => CardHistoryEntry[];
+  clearCardHistory: () => void;
 }
 
 function loadInitialState(): PlannerState {
@@ -33,6 +44,24 @@ function loadInitialState(): PlannerState {
 
 function persist(state: PlannerState): void {
   storage.set(STORAGE_KEYS.PLANNER_SESSION, state);
+}
+
+const MAX_HISTORY_PER_TEMPLATE = 50;
+
+function loadCardHistory(): CardHistoryMap {
+  return storage.get<CardHistoryMap>(STORAGE_KEYS.CARD_HISTORY) ?? {};
+}
+
+function saveCardToHistory(templateId: string, card: Omit<PartyCard, 'id'>): void {
+  const history = loadCardHistory();
+  const entries = history[templateId] ?? [];
+
+  // 같은 ownerName이 이미 있으면 최신으로 교체
+  const filtered = entries.filter((e) => e.card.ownerName !== card.ownerName);
+  filtered.unshift({ card, registeredAt: new Date().toISOString() });
+
+  history[templateId] = filtered.slice(0, MAX_HISTORY_PER_TEMPLATE);
+  storage.set(STORAGE_KEYS.CARD_HISTORY, history);
 }
 
 export const usePlannerStore = create<PlannerState & PlannerActions>((set, get) => ({
@@ -58,6 +87,7 @@ export const usePlannerStore = create<PlannerState & PlannerActions>((set, get) 
     const newCard: PartyCard = { ...card, id: crypto.randomUUID() };
     set((state) => ({ cards: [...state.cards, newCard] }));
     persist(get());
+    saveCardToHistory(get().templateId, card);
   },
 
   updateCard: (id, card) => {
@@ -91,5 +121,16 @@ export const usePlannerStore = create<PlannerState & PlannerActions>((set, get) 
 
   loadFromStorage: () => {
     set(loadInitialState());
+  },
+
+  getCardHistory: () => {
+    const history = loadCardHistory();
+    return history[get().templateId] ?? [];
+  },
+
+  clearCardHistory: () => {
+    const history = loadCardHistory();
+    delete history[get().templateId];
+    storage.set(STORAGE_KEYS.CARD_HISTORY, history);
   },
 }));

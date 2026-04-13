@@ -77,7 +77,7 @@ export function RaidRecruitView() {
       for (let pi = 0; pi < assignment.matches[mi].length; pi++) {
         for (let si = 0; si < assignment.matches[mi][pi].length; si++) {
           if (mi === m && pi === p && si === s) continue;
-          if (!canSwapSlots(assignment.matches, pos, [mi, pi, si])) {
+          if (!canSwapSlots(assignment.matches, pos, [mi, pi, si], buffersPerParty)) {
             invalid.add(slotKey(mi, pi, si));
           }
         }

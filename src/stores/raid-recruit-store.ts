@@ -49,12 +49,12 @@ export const useRaidRecruitStore = create<RaidRecruitState & RaidRecruitActions>
     const exists = get().cards.some((c) => c.ownerName === card.ownerName);
     if (exists) return;
     const newCard: RaidRecruitCard = { ...card, id: crypto.randomUUID() };
-    set((state) => ({ cards: [...state.cards, newCard], swaps: [] }));
+    set((state) => ({ cards: [...state.cards, newCard] }));
     persist(get());
   },
 
   removeCard: (id) => {
-    set((state) => ({ cards: state.cards.filter((c) => c.id !== id), swaps: [] }));
+    set((state) => ({ cards: state.cards.filter((c) => c.id !== id) }));
     persist(get());
   },
 

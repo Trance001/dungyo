@@ -166,22 +166,36 @@ export function buildRaidRecruitAssignment(
 /** 슬롯 좌표 */
 export type SlotPosition = [number, number, number]; // [matchIdx, partyIdx, slotIdx]
 
+/** 슬롯 인덱스로 역할 판별 (0 ~ buffersPerParty-1 = 버퍼, 이후 = 딜러) */
+export function slotRole(slotIdx: number, buffersPerParty: number): 'dealer' | 'buffer' {
+  return slotIdx < buffersPerParty ? 'buffer' : 'dealer';
+}
+
 /**
- * 두 셀을 스왑했을 때 모험단 중복이 발생하지 않는지 확인
+ * 두 셀을 스왑했을 때 유효한지 확인
+ * - 같은 역할(딜러↔딜러, 버퍼↔버퍼) 위치끼리만 스왑 가능
+ * - 스왑 후 모험단 중복이 발생하지 않아야 함
  */
 export function canSwapSlots(
   matches: (RaidRecruitSlot | null)[][][],
   from: SlotPosition,
   to: SlotPosition,
+  buffersPerParty: number,
 ): boolean {
   const [m1, p1, s1] = from;
   const [m2, p2, s2] = to;
 
-  // 같은 기수 내 스왑은 항상 가능 (중복이 변하지 않음)
-  if (m1 === m2) return true;
-
   const slotA = matches[m1]?.[p1]?.[s1];
   const slotB = matches[m2]?.[p2]?.[s2];
+
+  // 둘 다 비어있으면 스왑 불필요
+  if (!slotA && !slotB) return false;
+
+  // 슬롯 위치의 역할이 같아야 스왑 가능
+  if (slotRole(s1, buffersPerParty) !== slotRole(s2, buffersPerParty)) return false;
+
+  // 같은 기수 내 같은 역할 스왑은 항상 가능 (중복 변하지 않음)
+  if (m1 === m2) return true;
 
   const ownerA = slotA?.ownerName ?? null;
   const ownerB = slotB?.ownerName ?? null;

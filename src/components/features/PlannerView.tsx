@@ -66,7 +66,6 @@ export function PlannerView() {
   const isOver = cards.length > template.peopleCount;
 
   const assignment = useMemo(() => {
-    if (cards.length === 0) return null;
     return buildPlannerAssignment(template, cards);
   }, [template, cards]);
 

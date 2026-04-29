@@ -320,6 +320,7 @@ function CharacterSlotCard({
         </p>
         <p className="text-xs text-muted-foreground truncate">
           {character.jobGrowName}
+          {character.fame > 0 && ` · 명성 ${character.fame.toLocaleString()}`}
         </p>
         <p className={`text-xs font-medium ${roleColor}`}>{stat}</p>
       </div>

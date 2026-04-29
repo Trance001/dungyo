@@ -12,4 +12,6 @@ export interface Preset {
   useTotalDamage: boolean;
   minTotalDamage: number;
   truncateOnesDigit: boolean;
+  /** 입장 명성 (0이면 제한 없음) */
+  minFame?: number;
 }

@@ -60,6 +60,7 @@ export function decodePreset(code: string): Omit<Preset, 'id'> | null {
       useTotalDamage: d.useTotalDamage,
       minTotalDamage: typeof d.minTotalDamage === 'number' ? d.minTotalDamage : 0,
       truncateOnesDigit: typeof d.truncateOnesDigit === 'boolean' ? d.truncateOnesDigit : false,
+      minFame: typeof d.minFame === 'number' ? d.minFame : 0,
     };
   } catch {
     return null;

@@ -135,6 +135,7 @@ export function HomePage() {
       useTotalDamage,
       minTotalDamage: Number(minTotalDamage) || 0,
       truncateOnesDigit,
+      minFame: Number(minFame) || 0,
     };
   }
 
@@ -237,6 +238,7 @@ export function HomePage() {
     setUseTotalDamage(preset.useTotalDamage);
     setMinTotalDamage(preset.minTotalDamage ? String(preset.minTotalDamage) : '');
     setTruncateOnesDigit(preset.truncateOnesDigit ?? false);
+    setMinFame(preset.minFame ? String(preset.minFame) : '');
 
     // 캐릭터가 등록되어 있고 슬롯 합이 인원 수를 넘지 않으면 자동 파티 구성
     const presetSlotSum = preset.dealerSlots + preset.bufferSlots + preset.secondaryBufferSlots;
@@ -254,6 +256,7 @@ export function HomePage() {
       useTotalDamage: preset.useTotalDamage,
       minTotalDamage: preset.minTotalDamage,
       truncateOnesDigit: presetTruncateOnesDigit,
+      minFame: preset.minFame ?? 0,
     };
     buildParty(input);
   }

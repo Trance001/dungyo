@@ -96,6 +96,18 @@ export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveC
           <CardHeader>
             <CardTitle className="text-base">
               딜러 ({composition.dealers.length}/{composition.slotConfig.dealerSlots})
+              {composition.useTotalDamage && (() => {
+                const totalDmg = composition.dealers.reduce((sum, d) => {
+                  const dmg = composition.truncateOnesDigit ? Math.floor(d.damage / 10) * 10 : d.damage;
+                  return sum + dmg;
+                }, 0);
+                const avg = totalDmg / composition.dealers.length;
+                return (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    · 딜합 {totalDmg.toLocaleString()}억 · 평균 {avg.toFixed(1)}억
+                  </span>
+                );
+              })()}
             </CardTitle>
           </CardHeader>
           <CardContent>

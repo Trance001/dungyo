@@ -13,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCharacterStore } from '@/stores/character-store';
 import { usePartyComposition } from '@/hooks/usePartyComposition';
+import { useTheme } from '@/hooks/useTheme';
 import { usePresets } from '@/hooks/usePresets';
 import { PartyResult } from '@/components/features/PartyResult';
 import { CharacterManager } from '@/components/features/CharacterManager';
@@ -70,6 +71,7 @@ export function HomePage() {
   const characters = useCharacterStore((state) => state.characters);
   const adventureName = useCharacterStore((state) => state.adventureName);
   const { partyResults, buildParty, addCarry, removeCarry } = usePartyComposition();
+  const { theme, toggleTheme } = useTheme();
   const { presets, savePreset, updatePreset, deletePreset } = usePresets();
 
   const availableCarryCharacters = useMemo(() => {
@@ -266,15 +268,20 @@ export function HomePage() {
       <AdventureSetupDialog open={!adventureName} />
 
       <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-foreground">
-            DNF GYO - 버퍼교환 도우미
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {adventureName
-              ? `모험단: ${adventureName}`
-              : '던전앤파이터 버퍼교환 최적 파티 구성'}
-          </p>
+        <div className="container mx-auto px-4 py-4 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              DNF GYO - 버퍼교환 도우미
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {adventureName
+                ? `모험단: ${adventureName}`
+                : '던전앤파이터 버퍼교환 최적 파티 구성'}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={toggleTheme} className="shrink-0" aria-label="테마 전환">
+            {theme === 'dark' ? '☀️ 라이트' : '🌙 다크'}
+          </Button>
         </div>
       </header>
 

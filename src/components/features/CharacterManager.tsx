@@ -132,6 +132,9 @@ export function CharacterManager() {
                   던담
                 </Button>
               </div>
+              {c.fame > 0 && (
+                <p className="text-xs text-muted-foreground">명성 {c.fame.toLocaleString()}</p>
+              )}
             </div>
           </div>
         </TableCell>

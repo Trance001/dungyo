@@ -81,7 +81,7 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
         jobName: apiInfo?.jobName ?? '',
         jobGrowName: c.jobGrowName,
         adventureName: c.adventureName,
-        fame: 0,
+        fame: c.fame ?? 0,
       };
     });
 

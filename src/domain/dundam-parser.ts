@@ -11,6 +11,8 @@ export interface DundamCharacterData {
   damage: number | null;
   /** 버퍼: 버프점수 원본 값 */
   buffPower: number | null;
+  /** 명성 */
+  fame: number | null;
 }
 
 /** 던담 파싱 결과 */
@@ -78,6 +80,7 @@ export function parseDundamText(text: string): DundamParseResult {
         /** 4인 파티 기준 딜 (장비 버프 포함) - 버퍼교환 시 우선 사용 */
         let partyDamage: number | null = null;
         let buffScore: number | null = null;
+        let fame: number | null = null;
 
         // 이후 줄에서 캐릭터명과 스탯 검색
         for (let j = i + 2; j < Math.min(i + 20, lines.length); j++) {
@@ -86,6 +89,12 @@ export function parseDundamText(text: string): DundamParseResult {
           // 캐릭터명 + 모험단명 (첫 매칭만 사용)
           if (characterName === null && searchLine.endsWith(adventureName) && searchLine.length > adventureName.length) {
             characterName = searchLine.slice(0, -adventureName.length);
+            // 캐릭터명 줄 바로 다음 줄이 명성 (순수 숫자)
+            const nextLine = lines[j + 1];
+            if (nextLine && /^\d+$/.test(nextLine)) {
+              fame = parseInt(nextLine, 10);
+            }
+            continue;
           }
 
           // 4인 파티 딜 (조 단위): "4인X 조 XXXX 억"
@@ -162,6 +171,7 @@ export function parseDundamText(text: string): DundamParseResult {
             adventureName,
             damage,
             buffPower,
+            fame,
           });
         }
 

@@ -141,9 +141,15 @@ export function buildPartyComposition(
   clearedRecords: WeeklyClearRecord[],
   roleOverrideMap: Map<string, 'dealer' | 'buffer'>,
 ): PartyComposition {
+  // 명성 필터 적용
+  const minFame = input.minFame ?? 0;
+  const fameFiltered = minFame > 0
+    ? characters.filter((c) => c.fame >= minFame)
+    : characters;
+
   // 1. 딜러 선별
   const dealerCandidates = filterDealers(
-    characters,
+    fameFiltered,
     damageMap,
     input.minDealerDamage,
     clearedRecords,
@@ -156,7 +162,7 @@ export function buildPartyComposition(
   // 2. 버퍼 선별 (버프력 높은 순)
   const usedIds = new Set(selectedDealers.map((d) => characterKey(d)));
   const primaryBufferCandidates = filterBuffers(
-    characters.filter((c) => !usedIds.has(characterKey(c))),
+    fameFiltered.filter((c) => !usedIds.has(characterKey(c))),
     buffPowerMap,
     input.minPrimaryBuffPower,
     clearedRecords,
@@ -169,7 +175,7 @@ export function buildPartyComposition(
   let secondaryBuffers: BufferCharacter[] = [];
   if (input.secondaryBufferSlots > 0) {
     const secondaryCandidates = filterBuffers(
-      characters.filter((c) => !usedIds.has(characterKey(c))),
+      fameFiltered.filter((c) => !usedIds.has(characterKey(c))),
       buffPowerMap,
       input.minSecondaryBuffPower,
       clearedRecords,

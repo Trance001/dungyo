@@ -50,4 +50,6 @@ export interface BufferExchangeInput extends SlotConfig {
   minTotalDamage: number;
   /** 딜합 계산 시 1의 자리 버림 */
   truncateOnesDigit: boolean;
+  /** 최소 입장 명성 (0 또는 미입력 시 제한 없음) */
+  minFame?: number;
 }

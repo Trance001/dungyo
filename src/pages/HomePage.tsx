@@ -42,6 +42,7 @@ export function HomePage() {
   const [useTotalDamage, setUseTotalDamage] = useState(false);
   const [minTotalDamage, setMinTotalDamage] = useState('');
   const [truncateOnesDigit, setTruncateOnesDigit] = useState(false);
+  const [minFame, setMinFame] = useState('');
   const [presetName, setPresetName] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
@@ -95,6 +96,16 @@ export function HomePage() {
   const computedCarrySlots = Math.max(0, totalMembersNum - totalSlotSum);
 
   function handleBuildParty() {
+    const fameValue = Number(minFame) || 0;
+
+    // 명성 입력 시 미파싱 캐릭터(fame=0)가 있으면 안내 후 캐릭터 관리로 이동
+    if (fameValue > 0 && characters.some((c) => !c.fame || c.fame <= 0)) {
+      const unparsed = characters.filter((c) => !c.fame || c.fame <= 0).map((c) => c.characterName);
+      window.alert(`다음 캐릭터의 명성 정보가 없습니다. 던담 데이터를 다시 갱신해주세요.\n\n${unparsed.join(', ')}`);
+      setActiveTab('characters');
+      return;
+    }
+
     const input: BufferExchangeInput = {
       dealerSlots: Number(dealerSlots) || 0,
       bufferSlots: Number(bufferSlots) || 0,
@@ -106,6 +117,7 @@ export function HomePage() {
       useTotalDamage,
       minTotalDamage: Number(minTotalDamage) || 0,
       truncateOnesDigit,
+      minFame: fameValue,
     };
     buildParty(input);
   }
@@ -387,6 +399,19 @@ export function HomePage() {
                       </div>
                     </>
                   )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="minFame">
+                      입장 명성 (선택)
+                    </Label>
+                    <Input
+                      id="minFame"
+                      type="number"
+                      placeholder="미입력 시 제한 없음"
+                      value={minFame}
+                      onChange={(e) => setMinFame(e.target.value)}
+                    />
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="minPrimaryBuff">

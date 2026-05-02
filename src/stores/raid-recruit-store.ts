@@ -78,7 +78,7 @@ export const useRaidRecruitStore = create<RaidRecruitState & RaidRecruitActions>
 
     for (const c of parsed.characters) {
       if (isBufferJob(c.jobGrowName) && c.buffPower !== null) {
-        buffers.push({ name: c.characterName, stat: Math.round(c.buffPower / 10000) });
+        buffers.push({ name: c.characterName, stat: Math.round(c.buffPower / 1000) / 10 });
       } else if (c.damage !== null) {
         dealers.push({ name: c.characterName, stat: c.damage });
       }

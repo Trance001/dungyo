@@ -472,7 +472,7 @@ export function PlannerView() {
                         </div>
                         {assignment.bufferStatPerMatch[matchIdx] > 0 && (
                           <div className="text-xs font-normal text-blue-400">
-                            벞 {assignment.bufferStatPerMatch[matchIdx].toLocaleString()}
+                            벞 {assignment.bufferStatPerMatch[matchIdx].toFixed(1)}
                           </div>
                         )}
                       </td>
@@ -491,7 +491,11 @@ export function PlannerView() {
                             ) : slot.character ? (
                               <div className="space-y-0.5">
                                 <div className="font-semibold">
-                                  {slot.character.stat > 0 ? slot.character.stat.toLocaleString() : '—'}
+                                  {slot.character.stat > 0
+                                    ? (slot.role === 'buffer' || slot.role === 'secondaryBuffer'
+                                        ? slot.character.stat.toFixed(1)
+                                        : slot.character.stat.toLocaleString())
+                                    : '—'}
                                 </div>
                                 <div className="text-muted-foreground truncate">
                                   {slot.character.jobGrowName.replace(/^眞\s*/, '')}

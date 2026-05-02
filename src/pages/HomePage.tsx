@@ -430,6 +430,7 @@ export function HomePage() {
                     <Input
                       id="minPrimaryBuff"
                       type="number"
+                      step="0.1"
                       placeholder="예: 5"
                       value={minPrimaryBuff}
                       onChange={(e) => setMinPrimaryBuff(e.target.value)}
@@ -444,6 +445,7 @@ export function HomePage() {
                       <Input
                         id="minSecondaryBuff"
                         type="number"
+                        step="0.1"
                         placeholder="예: 3"
                         value={minSecondaryBuff}
                         onChange={(e) => setMinSecondaryBuff(e.target.value)}

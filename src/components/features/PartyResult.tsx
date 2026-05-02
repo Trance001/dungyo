@@ -149,7 +149,7 @@ export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveC
                   <CharacterSlotCard
                     key={`${buffer.serverId}:${buffer.characterId}`}
                     character={buffer}
-                    stat={`버프력: ${buffer.buffPower.toLocaleString()}만`}
+                    stat={`버프력: ${buffer.buffPower.toFixed(1)}만`}
                     roleColor="text-blue-500"
                     cleared={cleared}
                     onToggleCleared={() => cleared
@@ -180,7 +180,7 @@ export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveC
                   <CharacterSlotCard
                     key={`${buffer.serverId}:${buffer.characterId}`}
                     character={buffer}
-                    stat={`버프력: ${buffer.buffPower.toLocaleString()}만`}
+                    stat={`버프력: ${buffer.buffPower.toFixed(1)}만`}
                     roleColor="text-cyan-500"
                     cleared={cleared}
                     onToggleCleared={() => cleared
@@ -240,7 +240,7 @@ export function PartyResult({ composition, partyIndex, onOpenAddCarry, onRemoveC
                     <CharacterSlotCard
                       key={`carry-b-${buffer.serverId}:${buffer.characterId}`}
                       character={buffer}
-                      stat={`버프력: ${buffer.buffPower.toLocaleString()}만`}
+                      stat={`버프력: ${buffer.buffPower.toFixed(1)}만`}
                       roleColor="text-sky-400"
                       cleared={cleared}
                       onToggleCleared={() => cleared

@@ -142,6 +142,7 @@ export function CharacterManager() {
         <TableCell>
           <Input
             type="number"
+            step={isBuffer ? '0.1' : '1'}
             className="w-32 h-8 text-sm"
             placeholder={isBuffer ? '버프력' : '딜'}
             value={statValue ?? ''}

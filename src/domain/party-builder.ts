@@ -212,14 +212,14 @@ export function buildPartyComposition(
     missingSlots.push({
       role: 'buffer',
       count: input.bufferSlots - primaryBuffers.length,
-      requirement: `버프력 ${input.minPrimaryBuffPower.toLocaleString()}만 이상`,
+      requirement: `버프력 ${input.minPrimaryBuffPower.toFixed(1)}만 이상`,
     });
   }
   if (input.secondaryBufferSlots > 0 && secondaryBuffers.length < input.secondaryBufferSlots) {
     missingSlots.push({
       role: 'secondaryBuffer',
       count: input.secondaryBufferSlots - secondaryBuffers.length,
-      requirement: `버프력 ${input.minSecondaryBuffPower.toLocaleString()}만 이상`,
+      requirement: `버프력 ${input.minSecondaryBuffPower.toFixed(1)}만 이상`,
     });
   }
   const slotConfig = {

@@ -63,7 +63,7 @@ export function AddCarryDialog({
                 ? buffPowerMap.get(characterKey(c))
                 : damageMap.get(characterKey(c));
               const statLabel = isBuffer
-                ? `버프력: ${statValue?.toLocaleString() ?? '-'}만`
+                ? `버프력: ${statValue !== undefined ? statValue.toFixed(1) : '-'}만`
                 : `딜: ${statValue?.toLocaleString() ?? '-'}억`;
               const hasKey = hasValidCharacterId(c);
 

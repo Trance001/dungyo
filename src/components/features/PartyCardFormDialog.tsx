@@ -104,18 +104,19 @@ export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmi
   const sections: Array<{
     label: string;
     statLabel: string;
+    statStep: string;
     jobCategories: JobCategory[];
     list: CharForm[];
     setter: (v: CharForm[]) => void;
   }> = [];
   if (template.slotsPerPerson.buffer > 0) {
-    sections.push({ label: '버퍼', statLabel: '버프력 (만)', jobCategories: BUFFER_JOB_CATEGORIES, list: buffers, setter: setBuffers });
+    sections.push({ label: '버퍼', statLabel: '버프력 (만)', statStep: '0.1', jobCategories: BUFFER_JOB_CATEGORIES, list: buffers, setter: setBuffers });
   }
   if (template.slotsPerPerson.dealer > 0) {
-    sections.push({ label: '딜러', statLabel: '딜 (억)', jobCategories: DEALER_JOB_CATEGORIES, list: dealers, setter: setDealers });
+    sections.push({ label: '딜러', statLabel: '딜 (억)', statStep: '1', jobCategories: DEALER_JOB_CATEGORIES, list: dealers, setter: setDealers });
   }
   if (template.slotsPerPerson.secondaryBuffer > 0) {
-    sections.push({ label: '업둥버퍼', statLabel: '버프력 (만)', jobCategories: BUFFER_JOB_CATEGORIES, list: secondaryBuffers, setter: setSecondaryBuffers });
+    sections.push({ label: '업둥버퍼', statLabel: '버프력 (만)', statStep: '0.1', jobCategories: BUFFER_JOB_CATEGORIES, list: secondaryBuffers, setter: setSecondaryBuffers });
   }
 
   return (
@@ -163,6 +164,7 @@ export function PartyCardFormDialog({ open, template, editCard, onClose, onSubmi
                     </select>
                     <Input
                       type="number"
+                      step={section.statStep}
                       placeholder={section.statLabel}
                       value={c.stat}
                       onChange={(e) => updateCharForm(section.list, section.setter, idx, 'stat', e.target.value)}

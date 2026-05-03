@@ -21,6 +21,7 @@ import { AdventureSetupDialog } from '@/components/features/AdventureSetupDialog
 import { AddCarryDialog } from '@/components/features/AddCarryDialog';
 import { ChangelogView } from '@/components/features/ChangelogView';
 import { PlannerView } from '@/components/features/PlannerView';
+import { SubjugationRecommendation } from '@/components/features/SubjugationRecommendation';
 import { PresetShareDialog } from '@/components/features/PresetShareDialog';
 import { PresetImportDialog } from '@/components/features/PresetImportDialog';
 import { usePresetUrlHash } from '@/hooks/usePresetUrlHash';
@@ -291,6 +292,7 @@ export function HomePage() {
             <TabsTrigger value="compose">파티 구성</TabsTrigger>
             <TabsTrigger value="characters">캐릭터 관리</TabsTrigger>
             <TabsTrigger value="planner">파티 플래너</TabsTrigger>
+            <TabsTrigger value="subjugation">토벌권 추천</TabsTrigger>
             <TabsTrigger value="changelog">변경사항</TabsTrigger>
           </TabsList>
 
@@ -596,6 +598,10 @@ export function HomePage() {
 
           <TabsContent value="planner">
             <PlannerView />
+          </TabsContent>
+
+          <TabsContent value="subjugation">
+            <SubjugationRecommendation />
           </TabsContent>
 
           <TabsContent value="changelog">

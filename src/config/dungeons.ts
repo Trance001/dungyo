@@ -1,5 +1,5 @@
 /** 상급던전 식별자 */
-export type DungeonId = 'apostate_castle' | 'turtle_archive' | 'liberated_nightmare';
+export type DungeonId = 'apostate_castle' | 'turtle_archive' | 'liberated_nightmare' | 'death_goddess';
 
 /**
  * 던전 컷 (풀/직 모드)
@@ -44,6 +44,13 @@ export const DEFAULT_DUNGEONS: Record<DungeonId, DungeonDef> = {
     dealerCut: { full: 400, direct: 400 },
     bufferCut: { full: 4.5, direct: 4.5 },
   },
+  death_goddess: {
+    id: 'death_goddess',
+    name: '죽음의 여신전',
+    minFame: 55950,
+    dealerCut: { full: 100, direct: 100 },
+    bufferCut: { full: 3.5, direct: 3.5 },
+  },
 };
 
 /** 표시 순서 (높은 명성 → 낮은 명성) */
@@ -51,6 +58,7 @@ export const DUNGEON_ORDER: DungeonId[] = [
   'apostate_castle',
   'turtle_archive',
   'liberated_nightmare',
+  'death_goddess',
 ];
 
 /** 토벌권: 한 장으로 클리어 가능한 던전 묶음 */
@@ -70,5 +78,10 @@ export const SUBJUGATION_TICKETS: TicketDef[] = [
     id: 'turtle_nightmare',
     label: '별거북 대서고 + 해방된 흉몽 토벌권',
     dungeonIds: ['turtle_archive', 'liberated_nightmare'],
+  },
+  {
+    id: 'nightmare_goddess',
+    label: '해방된 흉몽 + 죽음의 여신전 토벌권',
+    dungeonIds: ['liberated_nightmare', 'death_goddess'],
   },
 ];

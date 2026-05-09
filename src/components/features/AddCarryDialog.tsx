@@ -13,6 +13,7 @@ import {
 } from '@/domain/character';
 import { characterKey } from '@/domain/party-builder';
 import { useCharacterStore } from '@/stores/character-store';
+import { formatBuffPower } from '@/lib/buff-power-format';
 
 import type { Character } from '@/domain/character';
 
@@ -63,7 +64,7 @@ export function AddCarryDialog({
                 ? buffPowerMap.get(characterKey(c))
                 : damageMap.get(characterKey(c));
               const statLabel = isBuffer
-                ? `버프력: ${statValue !== undefined ? statValue.toFixed(1) : '-'}만`
+                ? `버프력: ${statValue !== undefined ? formatBuffPower(statValue) : '-'}만`
                 : `딜: ${statValue?.toLocaleString() ?? '-'}억`;
               const hasKey = hasValidCharacterId(c);
 

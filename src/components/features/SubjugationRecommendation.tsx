@@ -14,6 +14,7 @@ import { useDungeonConfigStore } from '@/stores/dungeon-config-store';
 import { recommendTicketCandidates } from '@/domain/dungeon-recommendation';
 import { DUNGEON_ORDER, SUBJUGATION_TICKETS } from '@/config/dungeons';
 import { getCharacterImageUrl, hasValidCharacterId } from '@/domain/character';
+import { formatBuffPower } from '@/lib/buff-power-format';
 
 import type { DungeonStatus, TicketCandidate } from '@/domain/dungeon-recommendation';
 import type { DungeonDef, DungeonId } from '@/config/dungeons';
@@ -36,7 +37,7 @@ const STATUS_BADGE_CLASS: Record<DungeonStatus, string> = {
 
 function formatStat(role: 'dealer' | 'buffer', stat: number | undefined): string {
   if (stat === undefined) return '-';
-  return role === 'buffer' ? `${stat.toFixed(1)}만` : `${stat.toLocaleString()}억`;
+  return role === 'buffer' ? `${formatBuffPower(stat)}만` : `${stat.toLocaleString()}억`;
 }
 
 export function SubjugationRecommendation() {

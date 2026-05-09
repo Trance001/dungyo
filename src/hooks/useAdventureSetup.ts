@@ -111,7 +111,7 @@ export function useAdventureSetup(): UseAdventureSetupReturn {
       } else if (nameIsBuffer && dundam.buffPower !== null) {
         // 일반 버퍼: 기존 오버라이드 제거 (재등록 케이스 대응)
         clearRoleOverride(character.serverId, character.characterId);
-        setBuffPower(character.serverId, character.characterId, Math.round(dundam.buffPower / 1000) / 10);
+        setBuffPower(character.serverId, character.characterId, Math.floor(dundam.buffPower / 1000) / 10);
       } else if (dundam.damage !== null) {
         setDamage(character.serverId, character.characterId, dundam.damage);
       }

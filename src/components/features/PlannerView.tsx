@@ -16,6 +16,7 @@ import { buildPlannerAssignment } from '@/domain/planner-optimizer';
 import { RaidRecruitView } from '@/components/features/RaidRecruitView';
 import { decodePartyCard } from '@/lib/party-card-codec';
 import { encodePreset } from '@/lib/preset-codec';
+import { formatBuffPower } from '@/lib/buff-power-format';
 import { buildPresetShareUrl } from '@/hooks/usePresetUrlHash';
 import { usePresets } from '@/hooks/usePresets';
 import { PartyCardFormDialog } from '@/components/features/PartyCardFormDialog';
@@ -472,7 +473,7 @@ export function PlannerView() {
                         </div>
                         {assignment.bufferStatPerMatch[matchIdx] > 0 && (
                           <div className="text-xs font-normal text-blue-400">
-                            벞 {assignment.bufferStatPerMatch[matchIdx].toFixed(1)}
+                            벞 {formatBuffPower(assignment.bufferStatPerMatch[matchIdx])}
                           </div>
                         )}
                       </td>
@@ -493,7 +494,7 @@ export function PlannerView() {
                                 <div className="font-semibold">
                                   {slot.character.stat > 0
                                     ? (slot.role === 'buffer' || slot.role === 'secondaryBuffer'
-                                        ? slot.character.stat.toFixed(1)
+                                        ? formatBuffPower(slot.character.stat)
                                         : slot.character.stat.toLocaleString())
                                     : '—'}
                                 </div>
